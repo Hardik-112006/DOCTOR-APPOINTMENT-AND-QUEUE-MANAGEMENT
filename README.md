@@ -23,3 +23,9 @@ A multi-role system where patients can book tokens, view live queue status, and 
 * User Flow
 * Feature Mapping
 * Persona Matrix
+
+
+ Documents:
+
+* [features.md](features.md) — MVP scope, modules, technical rules and database tables
+* [Research (.docx)](DOCTOR%20APPOINTMENT%20AND%20QUEUE%20MANAGEMENT.docx) — pain points, persona matrix, gap analysis
