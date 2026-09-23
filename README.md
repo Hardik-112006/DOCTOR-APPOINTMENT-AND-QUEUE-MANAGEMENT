@@ -25,7 +25,13 @@ A multi-role system where patients can book tokens, view live queue status, and 
 * Persona Matrix
 
 
+
+
  Documents:
 
 * [features.md](features.md) — MVP scope, modules, technical rules and database tables
 * [Research (.docx)](DOCTOR%20APPOINTMENT%20AND%20QUEUE%20MANAGEMENT.docx) — pain points, persona matrix, gap analysis
+* functions.png -  Core system functions including appointment booking, token generation, live queue tracking, ETA updates, notifications, consultation management, and clinic administration.
+* userflow.png -End-to-end user workflow showing how patients book appointments, track their live queue, receive notifications, and complete consultation, along with receptionist, doctor, and clinic admin interactions.
+* mvparchitecture.png - High-level MVP architecture showing the frontend, backend, database, authentication, queue management, notifications, and communication between system components.
+* featuremapping.png - ture mapping connecting the identified pain points and user personas with the corresponding MVP features and system solutions.
