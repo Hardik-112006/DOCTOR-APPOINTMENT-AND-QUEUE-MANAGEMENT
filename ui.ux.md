@@ -35,8 +35,6 @@ The interface is designed to reduce waiting uncertainty for patients and simplif
 
 ### UI Screenshots
 
-<p align="center">
-  <img src="screens/screen_map_17.png" width="30%" />
-  <img src="screens/screen_map_18.png" width="30%" />
-  <img src="screens/screen_map_16.png" width="30%" />
-</p>
+| Screen 17 | Screen 18 | Screen 16 |
+|---|---|---|
+| [![Screen 17](screens/screen_map_17.png)](screens/screen_map_17.png) | [![Screen 18](screens/screen_map_18.png)](screens/screen_map_18.png) | [![Screen 16](screens/screen_map_16.png)](screens/screen_map_16.png) |
