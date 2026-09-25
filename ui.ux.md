@@ -14,4 +14,4 @@ Designed the complete **DoctorQueue UI/UX** for patients, receptionists, doctors
 
 ## UI-UX USERFLOW:
 
-[uiux userflow.png]
+![UI/UX User Flow](uiux%20userflow.png)
