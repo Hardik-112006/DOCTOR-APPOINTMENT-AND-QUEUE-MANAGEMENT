@@ -11,3 +11,7 @@ Designed the complete **DoctorQueue UI/UX** for patients, receptionists, doctors
   - Improved WCAG AA color contrast
   - Consistent **Retry** recovery actions
 - Implemented the design as a **static Tailwind CSS HTML skeleton**, ready for API/backend integration.
+
+## UI-UX USERFLOW:
+
+[uiuxuserflow.png]
