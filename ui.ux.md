@@ -32,3 +32,11 @@ Designed the complete **DoctorQueue UI/UX** for patients, receptionists, doctors
 **Clarity → Accessibility → Real-time Feedback → Consistency → Error Recovery**
 
 The interface is designed to reduce waiting uncertainty for patients and simplify queue management for clinic staff.
+
+### UI Screenshots
+
+<p align="center">
+  <img src="screens/screen_map_17.png" width="30%" />
+  <img src="screens/screen_map_18.png" width="30%" />
+  <img src="screens/screen_map_16.png" width="30%" />
+</p>
