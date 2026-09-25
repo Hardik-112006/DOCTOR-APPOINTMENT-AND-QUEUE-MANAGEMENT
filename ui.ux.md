@@ -37,4 +37,4 @@ The interface is designed to reduce waiting uncertainty for patients and simplif
 
 | Screen 17 | Screen 18 | Screen 16 |
 |---|---|---|
-| [![Screen 17](screen_map_17.png)](screen_map_17.png) | [![Screen 18](screen_map_18.png)](screen_map_18.png) | [![Screen 16](screen_map_16.png)](screen_map_16.png) |
+| [![Screen 17](screen_map_17.png)](screen_map_17.png) | [![Screen 18] [![Screen 16](screen_map_16.png)](screen_map_16.png) |
