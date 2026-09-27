@@ -142,3 +142,9 @@ Rules:
 - `tokens`: one active token per patient per session.
 
 ![Feature Mapping](./featuremapping.png)
+
+## 🏗️ MVP Architecture
+
+The MVP architecture illustrates the core system components, their interactions, and the overall flow of the application.
+
+![MVP Architecture](./mvparchitecture.png)
