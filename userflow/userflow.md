@@ -423,6 +423,22 @@ Efficient Clinic Operations
 
 ---
 
+# 📊 User Flow Diagrams
+
+## User Workflow
+
+The following diagram illustrates the complete workflow of the **Patient, Receptionist, Doctor, and Clinic Admin**.
+
+![Doctor Appointment & Queue Management User Workflow](./userflow.png)
+
+---
+
+## Functions & Modules
+
+The following diagram represents the major functions and modules available to each system role.
+
+![System Functions and Modules](./functions.png)
+
 ## 📌 Summary
 
 The system follows a **role-based, centralized queue workflow** where patients interact with the appointment system, receptionists coordinate appointments and queue operations, doctors handle consultations, and clinic administrators monitor and manage the overall clinic.
