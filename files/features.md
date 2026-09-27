@@ -133,6 +133,8 @@ ETA       = remaining + (patients ahead × average) + doctor's delay
 | Table | Fields |
 |---|---|
 | users | id, name, phone, email, password (hashed), role (patient, receptionist, doctor, admin) |
+
+![Feature Mapping](./featuremapping.png)
 | doctors | id, user_id, specialization |
 | sessions | id, doctor_id, date, start_time, end_time, max_tokens, delay_min |
 | tokens | id, session_id, token_no, patient_id (empty for walk-ins), walk_in_name, walk_in_phone, source (online, walk_in), status, checkin_code, arrived_at, called_at, consult_started_at, completed_at |
