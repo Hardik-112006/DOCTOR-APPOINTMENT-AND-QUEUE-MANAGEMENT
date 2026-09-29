@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Doctor Consultation Desk — DoctorQueue{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <h1 data-i18n="doctorConsultationDesk" class="text-2xl font-black text-slate-900 tracking-tight">Doctor Consultation Desk</h1>
+                <span id="doc-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200"></span>
+            </div>
+            <p data-i18n="doctorDeskSubtitle" class="text-xs text-slate-500 mt-1">Manage consultations, call waiting patients in order, record clinical notes & prescriptions.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- Date Filter -->
+            <div class="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span data-i18n="date" class="text-xs font-bold text-slate-500">Date:</span>
+                <input type="date" id="doctor-queue-date" class="text-xs font-bold bg-transparent text-slate-800 outline-none cursor-pointer">
+            </div>
+
+            <!-- Doctor selector (for Admin or switching) -->
+            <div id="doctor-select-wrapper" class="hidden">
+                <select id="doctor-select-dropdown" onchange="switchDoctorQueue(this.value)" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 cursor-pointer">
+                    <!-- Populated via JS if admin -->
+                </select>
+            </div>
+
+            <button onclick="callNextPatient()" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 transition-all flex items-center gap-2">
+                <span data-i18n="callNextPatient">🔔 Call Next Patient</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Grid: Queue Sidebar + Active Patient Hero -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left: Today's Queue Sidebar (4 Cols) -->
+        <div class="lg:col-span-4 bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 data-i18n="todaysQueue" class="font-extrabold text-slate-900 text-sm">Today's Patient Queue</h3>
+                <span id="waiting-count-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">0 Waiting</span>
+            </div>
+
+            <div class="space-y-2.5 max-h-[650px] overflow-y-auto pr-1" id="waiting-queue-list">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+
+        <!-- Right: Active Patient & Consultation Area (8 Cols) -->
+        <div class="lg:col-span-8 space-y-6" id="active-patient-container">
+            <!-- Dynamically Rendered by JS -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/doctor.js"></script>
+{% endblock %}

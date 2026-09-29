@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Receptionist Queue Control Desk — DoctorQueue{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header Summary & Quick Action -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 data-i18n="receptionistControlCenter" class="text-2xl font-black text-slate-900 tracking-tight">Receptionist Queue Control Desk</h1>
+            <p data-i18n="receptionistSubtitle" class="text-xs text-slate-500 mt-1">Manage today's unified queue, register walk-in patients, mark arrivals, and coordinate doctor calls.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="openWalkInModal()" class="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 transition-all flex items-center gap-2">
+                <span data-i18n="registerWalkIn">+ Add Walk-In Patient</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 5 Live Queue Stat Counters -->
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+            <span data-i18n="totalAppointments" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Tokens</span>
+            <span class="text-2xl font-black text-slate-900 mt-1 block" id="count-total">0</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-amber-200 shadow-sm text-center bg-amber-50/20">
+            <span data-i18n="statusWaiting" class="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">Waiting</span>
+            <span class="text-2xl font-black text-amber-800 mt-1 block" id="count-waiting">0</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-rose-200 shadow-sm text-center bg-rose-50/20">
+            <span data-i18n="statusCalled" class="text-[10px] font-bold uppercase tracking-wider text-rose-700 block">Called</span>
+            <span class="text-2xl font-black text-rose-800 mt-1 block" id="count-called">0</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-blue-200 shadow-sm text-center bg-blue-50/20">
+            <span data-i18n="statusConsulting" class="text-[10px] font-bold uppercase tracking-wider text-blue-700 block">Consulting</span>
+            <span class="text-2xl font-black text-blue-800 mt-1 block" id="count-consulting">0</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-emerald-200 shadow-sm text-center bg-emerald-50/20">
+            <span data-i18n="statusCompleted" class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Completed</span>
+            <span class="text-2xl font-black text-emerald-800 mt-1 block" id="count-completed">0</span>
+        </div>
+    </div>
+
+    <!-- Table Card with Search & Filters -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-5">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <!-- Filter Tabs -->
+            <div class="flex items-center gap-1.5 overflow-x-auto">
+                <button onclick="filterStatus('ALL')" class="tab-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-sm" data-status="ALL">All Tokens</button>
+                <button onclick="filterStatus('WAITING')" class="tab-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200" data-status="WAITING">Waiting</button>
+                <button onclick="filterStatus('CALLED')" class="tab-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200" data-status="CALLED">Called</button>
+                <button onclick="filterStatus('CONSULTING')" class="tab-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200" data-status="CONSULTING">In Room</button>
+                <button onclick="filterStatus('COMPLETED')" class="tab-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200" data-status="COMPLETED">Completed</button>
+            </div>
+
+            <!-- Search Input -->
+            <div class="w-full sm:w-64">
+                <input type="text" id="queue-search" placeholder="Search token, patient, phone..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 border-y border-slate-200">
+                        <th class="px-4 py-3">Pos</th>
+                        <th class="px-4 py-3" data-i18n="token">Token</th>
+                        <th class="px-4 py-3" data-i18n="patient">Patient Details</th>
+                        <th class="px-4 py-3" data-i18n="doctor">Doctor & Dept</th>
+                        <th class="px-4 py-3" data-i18n="type">Type / Slot</th>
+                        <th class="px-4 py-3" data-i18n="status">Status / ETA</th>
+                        <th class="px-4 py-3 text-right" data-i18n="actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="queue-table-body" class="divide-y divide-slate-100">
+                    <!-- Populated via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Walk-In Modal -->
+<div id="walkin-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div>
+                <h3 data-i18n="registerWalkIn" class="text-xl font-black text-slate-900">Add Walk-In Patient</h3>
+                <p class="text-xs text-slate-500">Generate a live queue token instantly for a walk-in patient.</p>
+            </div>
+            <button onclick="closeWalkInModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+        </div>
+
+        <form id="walkin-form" class="mt-4 space-y-4">
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-700 mb-1" data-i18n="selectDoctor">Select Doctor & Specialty *</label>
+                <select id="walkin-doctor" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-500 outline-none">
+                    <!-- Populated via JS -->
+                </select>
+            </div>
+
+            <div>
+                <label data-i18n="fullName" class="block text-xs font-bold uppercase text-slate-700 mb-1">Patient Full Name *</label>
+                <input type="text" id="walkin-name" required placeholder="e.g. Rahul Verma" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div>
+                <label data-i18n="mobilePhone" class="block text-xs font-bold uppercase text-slate-700 mb-1">Mobile Phone *</label>
+                <input type="tel" id="walkin-phone" required placeholder="10-digit number" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div class="pt-2">
+                <button type="submit" id="walkin-submit-btn" class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs shadow-md">
+                    <span data-i18n="confirmBookingBtn">Generate Walk-in Token</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/receptionist.js"></script>
+{% endblock %}

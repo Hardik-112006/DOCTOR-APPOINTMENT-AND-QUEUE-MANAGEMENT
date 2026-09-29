@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+
+{% block title %}Clinic Admin Operational Overview — DoctorQueue{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Top Header Banner -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 data-i18n="clinicAdminOverview" class="text-2xl font-black text-slate-900 tracking-tight">Clinic Operational Command Center</h1>
+            <p data-i18n="adminSubtitle" class="text-xs text-slate-500 mt-1">Live overview of appointments, patient queue throughput, doctor availability, and audit logs.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-200 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span data-i18n="dbSync">PostgreSQL Live Sync</span>
+            </span>
+            <button onclick="loadDashboardMetrics()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors flex items-center gap-1">
+                <span>⟳</span> <span data-i18n="refresh">Refresh</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 6 KPI Stat Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+            <span data-i18n="totalAppointments" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Tokens</span>
+            <span class="text-2xl font-black text-slate-900 mt-1 block" id="metric-total">0</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-amber-200 shadow-sm text-center bg-amber-50/20">
+            <span data-i18n="statusWaiting" class="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">Waiting</span>
+            <span class="text-2xl font-black text-amber-800 mt-1 block" id="metric-waiting">0</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-rose-200 shadow-sm text-center bg-rose-50/20">
+            <span data-i18n="statusCalled" class="text-[10px] font-bold uppercase tracking-wider text-rose-700 block">Called</span>
+            <span class="text-2xl font-black text-rose-800 mt-1 block" id="metric-called">0</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-blue-200 shadow-sm text-center bg-blue-50/20">
+            <span data-i18n="statusConsulting" class="text-[10px] font-bold uppercase tracking-wider text-blue-700 block">In Room</span>
+            <span class="text-2xl font-black text-blue-800 mt-1 block" id="metric-consulting">0</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-emerald-200 shadow-sm text-center bg-emerald-50/20">
+            <span data-i18n="statusCompleted" class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Completed</span>
+            <span class="text-2xl font-black text-emerald-800 mt-1 block" id="metric-completed">0</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-indigo-200 shadow-sm text-center bg-indigo-50/20">
+            <span data-i18n="avgWaitTime" class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 block">Avg Wait</span>
+            <span class="text-2xl font-black text-indigo-800 mt-1 block" id="metric-avg-wait">0m</span>
+        </div>
+    </div>
+
+    <!-- Daily Progress Section (Horizontal Progress Bars for each day) -->
+    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div>
+                <h3 data-i18n="dailyProgressTitle" class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    Daily Consultation Progress & Throughput
+                </h3>
+                <p data-i18n="dailyProgressSubtitle" class="text-xs text-slate-500 mt-0.5">Real-time completed vs total scheduled consultation throughput per day.</p>
+            </div>
+            <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold">
+                Past 7 Days
+            </span>
+        </div>
+
+        <!-- Daily Progress Bars List Container -->
+        <div class="space-y-4" id="daily-progress-container">
+            <div class="p-4 text-center text-slate-400 text-xs animate-pulse">Loading daily throughput metrics...</div>
+        </div>
+    </div>
+
+    <!-- Two Column Dashboard Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left Column: Live Queue Status Breakdown & Doctor Availability (6 Cols) -->
+        <div class="lg:col-span-6 space-y-6">
+            <!-- Visual Queue Distribution Bar -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-extrabold text-slate-900 text-sm">Today's Queue Load Breakdown</h3>
+                    <span class="text-xs text-slate-400 font-medium">Real-Time Distribution</span>
+                </div>
+
+                <!-- Multi-segment Progress Bar -->
+                <div class="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                    <div id="bar-waiting" class="bg-amber-400 h-full transition-all duration-500" style="width: 0%" title="Waiting"></div>
+                    <div id="bar-called" class="bg-rose-500 h-full transition-all duration-500" style="width: 0%" title="Called"></div>
+                    <div id="bar-consulting" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%" title="Consulting"></div>
+                    <div id="bar-completed" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%" title="Completed"></div>
+                </div>
+
+                <!-- Legend -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-amber-400"></span>
+                        <span data-i18n="statusWaiting" class="text-slate-600 font-semibold">Waiting</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-rose-500"></span>
+                        <span data-i18n="statusCalled" class="text-slate-600 font-semibold">Called</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-blue-600"></span>
+                        <span data-i18n="statusConsulting" class="text-slate-600 font-semibold">In Room</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-emerald-500"></span>
+                        <span data-i18n="statusCompleted" class="text-slate-600 font-semibold">Completed</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doctor Statuses Grid -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-extrabold text-slate-900 text-sm">Clinic Doctors & Active Roster</h3>
+                    <span class="text-xs text-slate-500 font-semibold" id="metric-doctors">0/0</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="doctor-status-grid">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Live Audit & Activity Trail (6 Cols) -->
+        <div class="lg:col-span-6 space-y-6">
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                        <h3 data-i18n="liveAuditTitle" class="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                            Live Audit & Activity Trail
+                        </h3>
+                        <p data-i18n="liveAuditSubtitle" class="text-[11px] text-slate-400 mt-0.5">Real-time audit log stream of clinic events and transactions.</p>
+                    </div>
+                    <span class="text-[11px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md border border-blue-200">Live Feed</span>
+                </div>
+
+                <div class="space-y-3 max-h-[520px] overflow-y-auto pr-1 divide-y divide-slate-100" id="activity-log-list">
+                    <div class="p-4 text-center text-slate-400 text-xs">Loading audit activities...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Past Activities & Historical Audit Trail Section -->
+    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+                <h3 data-i18n="pastActivitiesTitle" class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                    <span>Past Activities & Historical Audit Trail</span>
+                </h3>
+                <p data-i18n="pastActivitiesSubtitle" class="text-xs text-slate-500 mt-0.5">Comprehensive chronological log of all past clinic system actions, logins, and consultation events.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-500 font-semibold" id="past-activities-count">Showing 0 logs</span>
+                <button onclick="loadPastActivities(1)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition-colors" title="Refresh">
+                    ⟳
+                </button>
+            </div>
+        </div>
+
+        <!-- Table for Past Activities -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px] bg-slate-50/50">
+                        <th data-i18n="action" class="py-3 px-3">Action</th>
+                        <th data-i18n="actor" class="py-3 px-3">Actor / User</th>
+                        <th data-i18n="role" class="py-3 px-3">Role</th>
+                        <th data-i18n="entity" class="py-3 px-3">Entity</th>
+                        <th data-i18n="timestamp" class="py-3 px-3 text-right">Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="past-activity-table-body" class="divide-y divide-slate-100">
+                    <tr>
+                        <td colspan="5" class="p-6 text-center text-slate-400 text-xs">Loading past activities...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+            <div class="text-slate-500 font-medium" id="past-page-info">
+                Page 1 of 1
+            </div>
+            <div class="flex items-center gap-2" id="past-pagination-btns">
+                <button id="past-prev-btn" onclick="prevPastPage()" disabled class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors">
+                    <span data-i18n="previous">&larr; Previous</span>
+                </button>
+                <button id="past-next-btn" onclick="nextPastPage()" disabled class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors">
+                    <span data-i18n="next">Next &rarr;</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/admin.js"></script>
+{% endblock %}

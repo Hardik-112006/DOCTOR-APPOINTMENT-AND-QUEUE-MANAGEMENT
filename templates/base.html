@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DoctorQueue — Smart Clinic & Queue Management{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                        },
+                        medical: {
+                            blue: '#0284c7',
+                            teal: '#0d9488',
+                            slate: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col antialiased text-slate-800">
+    <!-- Main Top Navigation -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Brand -->
+                <div class="flex items-center gap-3">
+                    <a href="/" class="flex items-center gap-2.5 group">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-teal-500 flex items-center justify-center text-white font-black text-xl shadow-md group-hover:scale-105 transition-transform">
+                            +
+                        </div>
+                        <div>
+                            <span data-i18n="appName" class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-blue-700 to-teal-600 bg-clip-text text-transparent">DoctorQueue</span>
+                            <span data-i18n="clinicBadge" class="hidden sm:inline-block ml-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 rounded-md border border-blue-200">SmartCare</span>
+                        </div>
+                    </a>
+
+                    <!-- Navigation Links for Quick Access -->
+                    <nav class="hidden md:flex items-center ml-8 space-x-1" id="nav-links">
+                        <a href="/track/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-track"><span data-i18n="navLiveQueue">Live Queue</span></a>
+                        <a href="/book/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-book"><span data-i18n="navBookToken">Book Token</span></a>
+                        <a href="/reception/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-reception"><span data-i18n="navReception">Reception</span></a>
+                        <a href="/doctor/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-doctor"><span data-i18n="navDoctorDesk">Doctor Desk</span></a>
+                        <a href="/dashboard/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-admin"><span data-i18n="navAdminOverview">Admin Overview</span></a>
+                    </nav>
+                </div>
+
+                <!-- Right Action Bar -->
+                <div class="flex items-center gap-3">
+                    <!-- Language Selector -->
+                    <div class="relative">
+                        <select id="lang-selector" onchange="switchLanguage(this.value)" class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 border-none rounded-lg px-2.5 py-1.5 text-slate-700 cursor-pointer focus:ring-2 focus:ring-blue-500">
+                            <option value="en">English 🇬🇧</option>
+                            <option value="hi">हिंदी (Hindi) 🇮🇳</option>
+                        </select>
+                    </div>
+
+                    <!-- Notification Bell Dropdown -->
+                    <div class="relative" id="notification-wrapper">
+                        <button onclick="toggleNotificationDropdown()" class="relative p-2 rounded-xl text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors focus:outline-none" title="Notifications">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                            <span id="notif-badge" class="hidden absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 py-3 z-50 transform origin-top-right transition-all">
+                            <div class="px-4 pb-2.5 border-b border-slate-100 flex items-center justify-between">
+                                <span data-i18n="notifications" class="font-bold text-slate-900 text-sm">Notifications</span>
+                                <button onclick="markAllNotificationsRead()" class="text-xs font-semibold text-blue-600 hover:underline"><span data-i18n="markAllRead">Mark all read</span></button>
+                            </div>
+                            <div id="notif-list" class="max-h-72 overflow-y-auto divide-y divide-slate-50">
+                                <div data-i18n="noNotifications" class="p-4 text-center text-slate-400 text-xs">No notifications yet</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Profile & Auth State -->
+                    <div id="auth-section" class="flex items-center gap-2">
+                        <!-- Populated by JS -->
+                        <a href="/login/" class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all"><span data-i18n="signIn">Sign In</span></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span data-i18n="footerTitle"><strong>DoctorQueue Live Core</strong> v1.0 • SmartCare Clinic</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span><span data-i18n="dbSync">PostgreSQL DB Sync</span>: <strong data-i18n="dbActive" class="text-slate-700">Active</strong></span>
+                <span data-i18n="pollingInterval">Polling: 5s Interval</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/i18n.js"></script>
+    <script>
+        // Global Auth & Navbar Manager
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = API.getUser();
+            const authSection = document.getElementById('auth-section');
+
+            if (user) {
+                const roleColors = {
+                    'PATIENT': 'bg-teal-50 text-teal-700 border-teal-200',
+                    'RECEPTIONIST': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                    'DOCTOR': 'bg-blue-50 text-blue-700 border-blue-200',
+                    'ADMIN': 'bg-amber-50 text-amber-700 border-amber-200'
+                };
+
+                authSection.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <div class="text-right hidden sm:block">
+                            <div class="text-xs font-bold text-slate-900 leading-tight">${user.full_name}</div>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase ${roleColors[user.role] || 'bg-slate-100 text-slate-600'}">${user.role}</span>
+                        </div>
+                        <button onclick="API.logout()" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="${typeof I18N !== 'undefined' ? I18N.t('signOut', 'Sign Out') : 'Sign Out'}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                // Highlight active nav link
+                const path = window.location.pathname;
+                if (path.includes('/track/')) document.getElementById('nav-track')?.classList.add('bg-blue-50', 'text-blue-600');
+                if (path.includes('/book/')) document.getElementById('nav-book')?.classList.add('bg-blue-50', 'text-blue-600');
+                if (path.includes('/reception/')) document.getElementById('nav-reception')?.classList.add('bg-blue-50', 'text-blue-600');
+                if (path.includes('/doctor/')) document.getElementById('nav-doctor')?.classList.add('bg-blue-50', 'text-blue-600');
+                if (path.includes('/dashboard/')) document.getElementById('nav-admin')?.classList.add('bg-blue-50', 'text-blue-600');
+
+                // Load notifications
+                loadNotifications();
+                setInterval(loadNotifications, 10000);
+            }
+
+            // Apply translations across current page and sync language selector
+            const currentLang = (typeof I18N !== 'undefined') ? I18N.getLanguage() : (localStorage.getItem('doctorqueue_lang') || 'en');
+            const langDropdown = document.getElementById('lang-selector');
+            if (langDropdown) {
+                langDropdown.value = currentLang;
+            }
+            document.documentElement.lang = currentLang;
+            if (typeof I18N !== 'undefined') {
+                I18N.applyTranslations();
+            }
+        });
+
+        async function loadNotifications() {
+            if (!API.getToken()) return;
+            const res = await API.get('/notifications/');
+            if (res.ok && res.data) {
+                const badge = document.getElementById('notif-badge');
+                if (res.data.unread_count > 0) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+
+                const list = document.getElementById('notif-list');
+                if (res.data.notifications && res.data.notifications.length > 0) {
+                    list.innerHTML = res.data.notifications.map(n => `
+                        <div class="px-4 py-3 hover:bg-slate-50 transition-colors ${n.is_read ? 'opacity-70' : 'bg-blue-50/40'}">
+                            <p class="text-xs font-semibold text-slate-800">${n.message}</p>
+                            <span class="text-[10px] text-slate-400 mt-1 block">${n.time_ago}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        function toggleNotificationDropdown() {
+            const dd = document.getElementById('notif-dropdown');
+            dd.classList.toggle('hidden');
+        }
+
+        async function markAllNotificationsRead() {
+            await API.post('/notifications/mark-all-read/');
+            loadNotifications();
+        }
+
+        async function switchLanguage(lang) {
+            const normalized = (lang && String(lang).trim().toLowerCase().startsWith('hi')) ? 'hi' : 'en';
+            if (API.getToken()) {
+                const res = await API.patch('/auth/language/', { language: normalized });
+                if (!res.ok) {
+                    console.error('Failed to persist language to backend:', res.error);
+                }
+            }
+            API.setLanguage(normalized);
+            if (typeof I18N !== 'undefined') {
+                I18N.setLanguage(normalized);
+            }
+            const sel = document.getElementById('lang-selector');
+            if (sel) sel.value = normalized;
+            window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang: normalized } }));
+            window.location.reload();
+        }
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

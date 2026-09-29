@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block title %}Live Queue & Patient Tracking — DoctorQueue{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    <!-- Top Status Bar with Live Indicator -->
+    <div class="flex items-center justify-between bg-white px-6 py-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-2.5">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+            <span data-i18n="liveQueueSync" class="text-xs font-bold text-slate-800 uppercase tracking-wider">Live Queue Sync</span>
+            <span class="text-[11px] text-slate-400"><span data-i18n="lastUpdated">Updated</span>: <strong id="last-updated-time" class="text-slate-600">--:--:--</strong></span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="refreshQueueManual()" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all flex items-center gap-1">
+                <span data-i18n="refresh">⟳ Refresh</span>
+            </button>
+            <a href="/book/" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs hover:bg-blue-100 transition-all">
+                <span data-i18n="bookAnother">+ Book Another</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- CALLED ALERT BANNER (High Visibility) -->
+    <div id="called-alert-banner" class="hidden pulsing-alert bg-gradient-to-r from-rose-600 to-red-600 text-white p-6 rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4 text-center sm:text-left">
+            <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-black text-2xl shrink-0">
+                🔔
+            </div>
+            <div>
+                <span data-i18n="turnAlert" class="px-2.5 py-0.5 bg-white text-rose-700 rounded-md text-[11px] font-black uppercase tracking-wider">Turn Alert</span>
+                <h2 data-i18n="proceedToRoom" class="text-xl sm:text-2xl font-black mt-1">Please Proceed to Consultation Room!</h2>
+                <p data-i18n="doctorCalledMsg" class="text-xs text-rose-100 mt-0.5">The doctor has called your token. Please step inside immediately.</p>
+            </div>
+        </div>
+        <div data-i18n="doctorIsReady" class="px-4 py-2 rounded-xl bg-white text-rose-700 font-extrabold text-sm shadow-md">
+            Doctor is Ready
+        </div>
+    </div>
+
+    <!-- Empty State (If no appointments exist at all) -->
+    <div id="empty-state" class="hidden bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-4 shadow-sm">
+        <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 text-2xl font-black flex items-center justify-center mx-auto">
+            📋
+        </div>
+        <h3 data-i18n="noActiveToken" class="text-xl font-bold text-slate-900">No Active Queue Token Found</h3>
+        <p data-i18n="noActiveTokenDesc" class="text-xs text-slate-500 max-w-sm mx-auto">You don't have an active appointment for today. Book an appointment or register with the clinic.</p>
+        <div class="pt-2">
+            <a href="/book/" class="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md">
+                <span data-i18n="bookAppointmentNow">Book Appointment Now &rarr;</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Live Tracker Card -->
+    <div id="tracker-content" class="space-y-6">
+        <!-- Hero Token Card -->
+        <div class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl"></div>
+
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
+                <div>
+                    <span data-i18n="yourActiveToken" class="text-xs font-semibold text-blue-300 uppercase tracking-wider">Your Active Token</span>
+                    <h1 class="text-5xl sm:text-6xl font-black tracking-tight mt-1 text-white font-mono" id="display-token">--</h1>
+                </div>
+                <div class="text-left sm:text-right">
+                    <span id="display-status-badge" class="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-md">
+                        WAITING
+                    </span>
+                    <div class="text-xs text-slate-300 mt-2 font-medium" id="display-booking-type">ONLINE</div>
+                </div>
+            </div>
+
+            <!-- 3 Core Metrics: Position, Ahead, ETA -->
+            <div class="grid grid-cols-3 gap-4 pt-6 text-center">
+                <div class="p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
+                    <span data-i18n="queuePosition" class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">Queue Position</span>
+                    <span class="text-2xl sm:text-3xl font-black text-white mt-1 block" id="display-position">-</span>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
+                    <span data-i18n="patientsAhead" class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">Patients Ahead</span>
+                    <span class="text-2xl sm:text-3xl font-black text-teal-300 mt-1 block" id="display-ahead">-</span>
+                </div>
+                <div class="p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
+                    <span data-i18n="dynamicEta" class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">Dynamic ETA</span>
+                    <span class="text-2xl sm:text-3xl font-black text-amber-300 mt-1 block" id="display-eta">0 min</span>
+                </div>
+            </div>
+
+            <!-- Doctor Subtitle -->
+            <div class="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-300">
+                <div>
+                    <span data-i18n="consultingDoctor" class="text-slate-400">Consulting Doctor:</span>
+                    <strong class="text-white ml-1 font-bold" id="display-doctor">--</strong>
+                    <span class="text-blue-300 text-[11px] ml-1.5" id="display-specialization"></span>
+                </div>
+                <div>
+                    <span data-i18n="department" class="text-slate-400">Department:</span>
+                    <strong class="text-white ml-1 font-bold" id="display-department">--</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Flow Indicator -->
+        <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+            <h3 data-i18n="consultationFlowStage" class="font-extrabold text-slate-900 text-sm">Consultation Flow Stage</h3>
+
+            <div class="relative">
+                <!-- Background Line -->
+                <div class="absolute top-4 left-4 right-4 h-1 bg-slate-200 -z-0">
+                    <div id="progress-fill-bar" class="h-1 bg-blue-600 transition-all duration-500" style="width: 15%;"></div>
+                </div>
+
+                <!-- Steps -->
+                <div class="flex items-center justify-between relative z-10">
+                    <div class="flex flex-col items-center">
+                        <div id="step-circle-waiting" class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs ring-4 ring-blue-100">
+                            1
+                        </div>
+                        <span id="step-label-waiting" data-i18n="statusWaiting" class="text-xs font-bold text-blue-700 mt-2">Waiting</span>
+                    </div>
+
+                    <div class="flex flex-col items-center">
+                        <div id="step-circle-called" class="w-9 h-9 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">
+                            2
+                        </div>
+                        <span id="step-label-called" data-i18n="statusCalled" class="text-xs font-medium text-slate-400 mt-2">Called</span>
+                    </div>
+
+                    <div class="flex flex-col items-center">
+                        <div id="step-circle-consulting" class="w-9 h-9 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">
+                            3
+                        </div>
+                        <span id="step-label-consulting" data-i18n="statusConsulting" class="text-xs font-medium text-slate-400 mt-2">Consulting</span>
+                    </div>
+
+                    <div class="flex flex-col items-center">
+                        <div id="step-circle-completed" class="w-9 h-9 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">
+                            ✓
+                        </div>
+                        <span id="step-label-completed" data-i18n="statusCompleted" class="text-xs font-medium text-slate-400 mt-2">Completed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ALL PATIENT APPOINTMENTS LIST (Multiple Appointments Section) -->
+    <div id="patient-appointments-container" class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+                <h3 data-i18n="myAppointments" class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                    <span>My Appointments</span>
+                </h3>
+                <p data-i18n="myAppointmentsSubtitle" class="text-xs text-slate-500 mt-0.5">All appointments and active queue tokens for your profile</p>
+            </div>
+            <span id="appointment-count-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                0 Appointments
+            </span>
+        </div>
+
+        <div id="appointments-cards-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <!-- Populated via JS -->
+            <div class="col-span-full p-6 text-center text-slate-400 text-xs">
+                Loading appointments...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/patient-queue.js"></script>
+{% endblock %}
