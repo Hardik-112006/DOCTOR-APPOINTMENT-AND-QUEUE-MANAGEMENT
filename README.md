@@ -1,143 +1,258 @@
-<<<<<<< HEAD
-# Doctor Appointment & Queue Management System (DoctorQueue)
-### Production-Ready Django + DRF + PostgreSQL + Django Templates + Tailwind CSS + Vanilla JS
+# 🏥 Doctor Appointment & Queue Management System (DoctorQueue)
 
-DoctorQueue is a modern, responsive web application engineered for clinics to eliminate waiting time uncertainty through live queue tracking, atomic token generation, dynamic wait-time calculation, and seamless coordination between patients, receptionists, doctors, and clinic administrators.
+### Django + DRF + PostgreSQL + Django Templates + Tailwind CSS + Vanilla JavaScript
 
----
+DoctorQueue is a web-based Doctor Appointment & Queue Management System designed for small clinics to reduce waiting-time uncertainty, manage appointments and walk-ins, and provide real-time queue visibility.
 
-## Key Features
-
-1. **Patient Portal**:
-   - Specialty & doctor discovery with real-time fee and schedule details.
-   - Interactive date and slot picker with double-booking prevention.
-   - Live queue tracking with 5-second polling, dynamic ETA calculation, and visual progress stages.
-   - Instant call-to-room alerts with audible and visual indicators.
-
-2. **Receptionist Queue Control**:
-   - Unified real-time queue table supporting online appointments and walk-in patients.
-   - 1-click walk-in registration with atomic sequential token generation.
-   - Patient check-in (mark arrived) and status coordination.
-
-3. **Doctor Consultation Desk**:
-   - Real-time waiting queue sidebar.
-   - 1-click **Call Next Patient** action.
-   - Clinical observation notes and prescription record management.
-   - Atomic state transitions (`CALLED` $\rightarrow$ `CONSULTING` $\rightarrow$ `COMPLETED`).
-
-4. **Clinic Admin Command Center**:
-   - Real-time operational KPI metrics (Total Tokens, In Queue, Average Wait Time, Active Doctors).
-   - Real-time queue load distribution gauge.
-   - Audit trail and live activity logs stream.
-
-5. **Authoritative Backend State**:
-   - Single source of truth in PostgreSQL.
-   - Robust `QueueService` with concurrency locks (`select_for_update`) to prevent race conditions.
-   - JWT authentication (SimpleJWT) with role-based access control.
+The system connects **patients, receptionists, doctors, and clinic administrators** through a unified appointment and queue management workflow.
 
 ---
 
-## Tech Stack
+## 🚀 Key Features
 
-- **Backend**: Python 3.12+, Django 5.1+, Django REST Framework (DRF), SimpleJWT, PostgreSQL (`psycopg 3.2+`)
-- **Frontend**: Django Templates, HTML5, Tailwind CSS, Vanilla JavaScript (Centralized `api.js` + Fetch API)
-- **Architecture**: Service Layer (`AppointmentService`, `QueueService`, `ConsultationService`, `DashboardService`, `NotificationService`)
+### 1. Patient Portal
+
+* Search and discover available doctors and specialties.
+* View doctor fees, schedules, and available slots.
+* Book appointments and generate queue tokens.
+* Prevent double-booking of appointment slots.
+* Track live queue position.
+* View estimated waiting time (ETA).
+* Receive turn/call notifications.
+
+### 2. Receptionist Queue Control
+
+* Manage online appointments and walk-in patients from one queue.
+* Register walk-in patients.
+* Generate sequential queue tokens.
+* Check patients in and update queue status.
+* Monitor the current clinic queue.
+
+### 3. Doctor Consultation Desk
+
+* View the current waiting queue.
+* Call the next patient.
+* Update patient consultation status.
+* Add clinical notes and prescriptions.
+* Manage consultation flow:
+
+`CALLED → CONSULTING → COMPLETED`
+
+### 4. Clinic Admin Dashboard
+
+* View total appointments and tokens.
+* Monitor patients currently in queue.
+* Track average waiting time.
+* Monitor active doctors.
+* View queue activity and operational information.
+
+### 5. Backend & Queue Management
+
+* PostgreSQL as the main database.
+* JWT-based authentication.
+* Role-based access control.
+* Atomic token generation.
+* Concurrency-safe queue operations using `select_for_update`.
+* Service-layer architecture for appointment, queue, consultation, dashboard, and notification operations.
 
 ---
 
-## Quick Start
+## 🛠️ Tech Stack
 
-### 1. Install Dependencies
+| Layer           | Technology                                 |
+| --------------- | ------------------------------------------ |
+| Backend         | Python, Django 5.1+, Django REST Framework |
+| Authentication  | SimpleJWT                                  |
+| Database        | PostgreSQL                                 |
+| Frontend        | Django Templates, HTML5, Tailwind CSS      |
+| JavaScript      | Vanilla JavaScript, Fetch API              |
+| API             | REST API                                   |
+| Database Driver | psycopg                                    |
+| Architecture    | Django Service Layer                       |
+
+---
+
+## 📂 Project Structure
+
+### 🎨 Frontend
+
+The **Frontend** folder contains the user interface, templates, styling, JavaScript logic, and role-based screens used by patients, receptionists, doctors, and administrators.
+
+### ⚙️ Backend
+
+The **Backend** folder contains the Django project, REST APIs, models, serializers, views, authentication, business logic, queue services, and application-level functionality.
+
+### 🗄️ Database
+
+The **Database** folder contains database-related files such as SQL scripts, schema information, seed/demo data, and PostgreSQL setup information.
+
+### 🔗 API Contract
+
+The **API Contract** folder contains the documented API endpoints, request/response structures, authentication requirements, and communication rules between the frontend and backend.
+
+---
+
+## 📚 Project Documentation
+
+* [`features.md`](features.md) — MVP scope, modules, technical requirements, and database-related information.
+* [`DOCTOR APPOINTMENT AND QUEUE MANAGEMENT.docx`](DOCTOR%20APPOINTMENT%20AND%20QUEUE%20MANAGEMENT.docx) — Research, pain points, personas, gap analysis, and project background.
+
+---
+
+## 👥 User Roles
+
+| Role             | Responsibilities                                                          |
+| ---------------- | ------------------------------------------------------------------------- |
+| **Patient**      | Book appointments, generate tokens, track queue and receive notifications |
+| **Receptionist** | Manage appointments, walk-ins, check-ins and queue                        |
+| **Doctor**       | Manage waiting patients, consultations, notes and prescriptions           |
+| **Admin**        | Monitor clinic operations, doctors, appointments and analytics            |
+
+---
+
+## ⚡ Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Hardik-112006/DOCTOR-APPOINTMENT-AND-QUEUE-MANAGEMENT.git
+cd DOCTOR-APPOINTMENT-AND-QUEUE-MANAGEMENT
+```
+
+### 2. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment (`.env`)
+### 3. Configure Environment
+
+Create a `.env` file and configure your PostgreSQL database and Django settings.
+
+Example:
+
 ```ini
 DEBUG=True
-SECRET_KEY=django-insecure-smartcare-doctorqueue-system-key-2026-prod-ready
+SECRET_KEY=your-secret-key
 ALLOWED_HOSTS=*
 DB_NAME=doctor_queue
 DB_USER=postgres
-DB_PASSWORD=1234
+DB_PASSWORD=your-password
 DB_HOST=localhost
 DB_PORT=5432
 TIME_ZONE=Asia/Kolkata
 ```
 
-### 3. Apply Migrations & Seed Demo State
+### 4. Apply Migrations
+
 ```bash
 python manage.py migrate
+```
+
+### 5. Load Demo Data
+
+```bash
 python manage.py seed_demo --reset
 ```
 
-### 4. Run Development Server
+### 6. Run the Development Server
+
 ```bash
 python manage.py runserver
 ```
 
-Open `http://127.0.0.1:8000/` in your browser.
+Open:
+
+```text
+http://127.0.0.1:8000/
+```
 
 ---
 
-## Demo Accounts (Password: `Demo@123`)
+## 🧪 Running Tests
 
-| Role | Identifier (Phone/Email) | Description |
-| :--- | :--- | :--- |
-| **Patient** | `9000000001` / `aarav.patient@example.com` | Primary Patient (Token `A-27`, Position 4, 3 ahead, ETA 30m) |
-| **Receptionist** | `9000000002` / `reception@smartcare.example.com` | Unified queue desk, walk-ins |
-| **Doctor** | `9000000003` / `rajesh.doctor@example.com` | Dr. Rajesh Kumar (General Physician) |
-| **Doctor** | `9000000004` / `neha.doctor@example.com` | Dr. Neha Verma (Cardiologist) |
-| **Admin** | `9000000005` / `admin@smartcare.example.com` | Clinic Operations & Metrics |
+Run the Django test suite using:
 
----
-
-## Running Automated Tests
 ```bash
 python manage.py test
 ```
-=======
-# MAREEZ-AND-DOCTOR
 
-# 🏥 Doctor Appointment & Queue Management System
+---
 
-## Problem Statement
+## 🔐 Authentication
 
-Small clinics face long waiting times, overcrowding, manual token management, and poor queue visibility. Patients often don't know when their turn will come.
+The system uses **JWT authentication with Django REST Framework SimpleJWT**.
 
- Solution:
+Different roles are provided with role-specific access and functionality:
 
-A multi-role system where patients can book tokens, view live queue status, and track their turn, while clinic staff can efficiently manage appointments and queues.
+* Patient
+* Receptionist
+* Doctor
+* Admin
 
- Roles:
+---
 
-* Patient — Book, track queue & get notifications
-* Receptionist — Manage appointments, walk-ins & tokens
-* Doctor — Manage patient queue & consultations
-* Admin — Manage clinic, doctors & analytics
+## 🔄 Core System Flow
 
- Research:
+```text
+Patient
+   ↓
+Book Appointment / Get Token
+   ↓
+Unified Queue
+   ↓
+Live Queue Tracking
+   ↓
+Dynamic ETA
+   ↓
+Doctor Calls Patient
+   ↓
+Consultation
+   ↓
+Completed
+```
 
-* Top 5 Real-World Pain Points
-* User Flow
-* Feature Mapping
-* Persona Matrix
+At the same time:
 
+```text
+Receptionist → Appointment & Queue Management
+Doctor       → Consultation Management
+Admin        → Clinic Monitoring & Analytics
+```
 
+---
 
+## 🎯 Problem Statement
 
- Documents:
+Small clinics often face:
 
-* [features.md](features.md) — MVP scope, modules, technical rules and database tables
-* [Research (.docx)](DOCTOR%20APPOINTMENT%20AND%20QUEUE%20MANAGEMENT.docx) — pain points, persona matrix, gap analysis
-* **Functions.png**
-  ![functions](functions.png) -  Core system functions including appointment booking, token generation, live queue tracking, ETA updates, notifications, consultation management, and clinic administration.
-* **User Flow,png**
-  ![userflow](userflow.png)  - End-to-end user workflow showing how patients book appointments, track their live queue, receive notifications, and complete consultation, along with receptionist, doctor, and clinic admin interactions.
+* Long and unpredictable waiting times
+* Manual token management
+* Overcrowded waiting areas
+* Poor visibility of queue status
+* Difficulty coordinating patients, receptionists, and doctors
+* Lack of real-time waiting-time information
 
-* **MVP Architecture.png**
-  ![MVP Architecture](mvparchitecture.png)  - High-level MVP architecture showing the frontend, backend, database, authentication, queue management, notifications, and communication between system components.
+### Solution
 
-* **Feature Mapping.png**
-  ![Feature Mapping](featuremapping.png) -  Feature mapping connecting the identified pain points and user personas with the corresponding MVP features and system solutions.
->>>>>>> 2a5446983469291b1edfc956143abbd9c7e193fd
+DoctorQueue provides a unified digital system where patients can book appointments and track their queue while clinic staff can manage appointments, walk-ins, consultations, and daily operations from role-specific dashboards.
+
+---
+
+## 📌 Future Enhancements
+
+* QR-based patient check-in
+* SMS/WhatsApp notifications
+* Multi-language support
+* Advanced clinic analytics
+* Multiple clinic/branch management
+* Improved real-time notification infrastructure
+* Cloud deployment and production monitoring
+
+---
+
+## 👨‍💻 Project
+
+**Doctor Appointment & Queue Management System — DoctorQueue**
+
+Built using **Django, Django REST Framework, PostgreSQL, Django Templates, Tailwind CSS, and Vanilla JavaScript**.
