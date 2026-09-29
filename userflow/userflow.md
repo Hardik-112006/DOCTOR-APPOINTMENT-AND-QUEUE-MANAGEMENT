@@ -446,3 +446,5 @@ The system follows a **role-based, centralized queue workflow** where patients i
 The workflow connects the complete journey:
 
 **Book → Token → Track → Arrive → Call → Consult → Complete → Analyze**
+
+![System workflow](./systemworkflow.png)
