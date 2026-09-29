@@ -2,6 +2,9 @@
 __pycache__/
 *.sqlite3
 .env
+.env.*
+!.env.example
+staticfiles/
 .venv/
 env/
 dist/
@@ -10,3 +13,4 @@ build/
 .DS_Store
 .idea/
 .vscode/
+
