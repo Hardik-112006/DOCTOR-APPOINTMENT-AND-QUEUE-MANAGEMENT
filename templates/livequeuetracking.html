@@ -55,16 +55,16 @@
     <!-- Main Live Tracker Card -->
     <div id="tracker-content" class="space-y-6">
         <!-- Hero Token Card -->
-        <div class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+        <div class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-5 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
             <div class="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl"></div>
 
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
                 <div>
                     <span data-i18n="yourActiveToken" class="text-xs font-semibold text-blue-300 uppercase tracking-wider">Your Active Token</span>
-                    <h1 class="text-5xl sm:text-6xl font-black tracking-tight mt-1 text-white font-mono" id="display-token">--</h1>
+                    <h1 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mt-1 text-white font-mono break-all" id="display-token">--</h1>
                 </div>
                 <div class="text-left sm:text-right">
-                    <span id="display-status-badge" class="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-md">
+                    <span id="display-status-badge" class="px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-md">
                         WAITING
                     </span>
                     <div class="text-xs text-slate-300 mt-2 font-medium" id="display-booking-type">ONLINE</div>
@@ -72,18 +72,18 @@
             </div>
 
             <!-- 3 Core Metrics: Position, Ahead, ETA -->
-            <div class="grid grid-cols-3 gap-4 pt-6 text-center">
-                <div class="p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
-                    <span data-i18n="queuePosition" class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">Queue Position</span>
-                    <span class="text-2xl sm:text-3xl font-black text-white mt-1 block" id="display-position">-</span>
+            <div class="grid grid-cols-3 gap-2 sm:gap-4 pt-6 text-center">
+                <div class="p-2.5 sm:p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
+                    <span data-i18n="queuePosition" class="text-[9px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold block truncate">Queue Position</span>
+                    <span class="text-lg sm:text-3xl font-black text-white mt-1 block" id="display-position">-</span>
                 </div>
-                <div class="p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
-                    <span data-i18n="patientsAhead" class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">Patients Ahead</span>
-                    <span class="text-2xl sm:text-3xl font-black text-teal-300 mt-1 block" id="display-ahead">-</span>
+                <div class="p-2.5 sm:p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
+                    <span data-i18n="patientsAhead" class="text-[9px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold block truncate">Patients Ahead</span>
+                    <span class="text-lg sm:text-3xl font-black text-teal-300 mt-1 block" id="display-ahead">-</span>
                 </div>
-                <div class="p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
-                    <span data-i18n="dynamicEta" class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">Dynamic ETA</span>
-                    <span class="text-2xl sm:text-3xl font-black text-amber-300 mt-1 block" id="display-eta">0 min</span>
+                <div class="p-2.5 sm:p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
+                    <span data-i18n="dynamicEta" class="text-[9px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold block truncate">Dynamic ETA</span>
+                    <span class="text-lg sm:text-3xl font-black text-amber-300 mt-1 block" id="display-eta">0 min</span>
                 </div>
             </div>
 
@@ -102,7 +102,7 @@
         </div>
 
         <!-- Progress Flow Indicator -->
-        <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <div class="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
             <h3 data-i18n="consultationFlowStage" class="font-extrabold text-slate-900 text-sm">Consultation Flow Stage</h3>
 
             <div class="relative">
@@ -114,31 +114,31 @@
                 <!-- Steps -->
                 <div class="flex items-center justify-between relative z-10">
                     <div class="flex flex-col items-center">
-                        <div id="step-circle-waiting" class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs ring-4 ring-blue-100">
+                        <div id="step-circle-waiting" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs ring-4 ring-blue-100">
                             1
                         </div>
-                        <span id="step-label-waiting" data-i18n="statusWaiting" class="text-xs font-bold text-blue-700 mt-2">Waiting</span>
+                        <span id="step-label-waiting" data-i18n="statusWaiting" class="text-[10px] sm:text-xs font-bold text-blue-700 mt-2 text-center">Waiting</span>
                     </div>
 
                     <div class="flex flex-col items-center">
-                        <div id="step-circle-called" class="w-9 h-9 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">
+                        <div id="step-circle-called" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">
                             2
                         </div>
-                        <span id="step-label-called" data-i18n="statusCalled" class="text-xs font-medium text-slate-400 mt-2">Called</span>
+                        <span id="step-label-called" data-i18n="statusCalled" class="text-[10px] sm:text-xs font-medium text-slate-400 mt-2 text-center">Called</span>
                     </div>
 
                     <div class="flex flex-col items-center">
-                        <div id="step-circle-consulting" class="w-9 h-9 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">
+                        <div id="step-circle-consulting" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">
                             3
                         </div>
-                        <span id="step-label-consulting" data-i18n="statusConsulting" class="text-xs font-medium text-slate-400 mt-2">Consulting</span>
+                        <span id="step-label-consulting" data-i18n="statusConsulting" class="text-[10px] sm:text-xs font-medium text-slate-400 mt-2 text-center">Consulting</span>
                     </div>
 
                     <div class="flex flex-col items-center">
-                        <div id="step-circle-completed" class="w-9 h-9 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">
+                        <div id="step-circle-completed" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs">
                             ✓
                         </div>
-                        <span id="step-label-completed" data-i18n="statusCompleted" class="text-xs font-medium text-slate-400 mt-2">Completed</span>
+                        <span id="step-label-completed" data-i18n="statusCompleted" class="text-[10px] sm:text-xs font-medium text-slate-400 mt-2 text-center">Completed</span>
                     </div>
                 </div>
             </div>

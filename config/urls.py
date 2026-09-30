@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from config.page_views import (
     index_redirect_view,
+    dashboard_page_view,
     login_page_view,
     book_appointment_page_view,
     live_queue_page_view,
@@ -17,7 +18,8 @@ urlpatterns = [
     path('django-admin/', admin.site.urls),
 
     # Web Pages (Django Templates)
-    path('', index_redirect_view, name='page_index'),
+    path('', dashboard_page_view, name='page_index'),
+    path('portal/', dashboard_page_view, name='page_dashboard'),
     path('login/', login_page_view, name='page_login'),
     path('book/', book_appointment_page_view, name='page_book_appointment'),
     path('track/', live_queue_page_view, name='page_live_queue'),

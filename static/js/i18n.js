@@ -9,6 +9,7 @@ const I18N = (() => {
             // Brand & Nav
             appName: "DoctorQueue",
             clinicBadge: "SmartCare",
+            navDashboard: "Dashboard",
             navLiveQueue: "Live Queue",
             navBookToken: "Book Token",
             navReception: "Reception",
@@ -248,6 +249,7 @@ const I18N = (() => {
             // Brand & Nav
             appName: "डॉक्टर कतार",
             clinicBadge: "स्मार्टकेयर",
+            navDashboard: "डैशबोर्ड",
             navLiveQueue: "लाइव कतार",
             navBookToken: "टोकन बुक करें",
             navReception: "रिसेप्शन",

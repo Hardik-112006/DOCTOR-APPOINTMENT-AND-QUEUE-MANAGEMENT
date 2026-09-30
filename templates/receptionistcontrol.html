@@ -18,39 +18,39 @@
     </div>
 
     <!-- 5 Live Queue Stat Counters -->
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
+        <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
             <span data-i18n="totalAppointments" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Tokens</span>
-            <span class="text-2xl font-black text-slate-900 mt-1 block" id="count-total">0</span>
+            <span class="text-xl sm:text-2xl font-black text-slate-900 mt-1 block" id="count-total">0</span>
         </div>
-        <div class="bg-white p-4 rounded-2xl border border-amber-200 shadow-sm text-center bg-amber-50/20">
+        <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-amber-200 shadow-sm text-center bg-amber-50/20">
             <span data-i18n="statusWaiting" class="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">Waiting</span>
-            <span class="text-2xl font-black text-amber-800 mt-1 block" id="count-waiting">0</span>
+            <span class="text-xl sm:text-2xl font-black text-amber-800 mt-1 block" id="count-waiting">0</span>
         </div>
-        <div class="bg-white p-4 rounded-2xl border border-rose-200 shadow-sm text-center bg-rose-50/20">
+        <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-rose-200 shadow-sm text-center bg-rose-50/20">
             <span data-i18n="statusCalled" class="text-[10px] font-bold uppercase tracking-wider text-rose-700 block">Called</span>
-            <span class="text-2xl font-black text-rose-800 mt-1 block" id="count-called">0</span>
+            <span class="text-xl sm:text-2xl font-black text-rose-800 mt-1 block" id="count-called">0</span>
         </div>
-        <div class="bg-white p-4 rounded-2xl border border-blue-200 shadow-sm text-center bg-blue-50/20">
+        <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-blue-200 shadow-sm text-center bg-blue-50/20">
             <span data-i18n="statusConsulting" class="text-[10px] font-bold uppercase tracking-wider text-blue-700 block">Consulting</span>
-            <span class="text-2xl font-black text-blue-800 mt-1 block" id="count-consulting">0</span>
+            <span class="text-xl sm:text-2xl font-black text-blue-800 mt-1 block" id="count-consulting">0</span>
         </div>
-        <div class="bg-white p-4 rounded-2xl border border-emerald-200 shadow-sm text-center bg-emerald-50/20">
+        <div class="col-span-2 sm:col-span-1 bg-white p-3.5 sm:p-4 rounded-2xl border border-emerald-200 shadow-sm text-center bg-emerald-50/20">
             <span data-i18n="statusCompleted" class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Completed</span>
-            <span class="text-2xl font-black text-emerald-800 mt-1 block" id="count-completed">0</span>
+            <span class="text-xl sm:text-2xl font-black text-emerald-800 mt-1 block" id="count-completed">0</span>
         </div>
     </div>
 
     <!-- Table Card with Search & Filters -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-5">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-4 sm:p-5">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <!-- Filter Tabs -->
-            <div class="flex items-center gap-1.5 overflow-x-auto">
-                <button onclick="filterStatus('ALL')" class="tab-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-sm" data-status="ALL">All Tokens</button>
-                <button onclick="filterStatus('WAITING')" class="tab-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200" data-status="WAITING">Waiting</button>
-                <button onclick="filterStatus('CALLED')" class="tab-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200" data-status="CALLED">Called</button>
-                <button onclick="filterStatus('CONSULTING')" class="tab-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200" data-status="CONSULTING">In Room</button>
-                <button onclick="filterStatus('COMPLETED')" class="tab-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200" data-status="COMPLETED">Completed</button>
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full w-full sm:w-auto">
+                <button onclick="filterStatus('ALL')" class="tab-filter whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-sm shrink-0" data-status="ALL">All Tokens</button>
+                <button onclick="filterStatus('WAITING')" class="tab-filter whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0" data-status="WAITING">Waiting</button>
+                <button onclick="filterStatus('CALLED')" class="tab-filter whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0" data-status="CALLED">Called</button>
+                <button onclick="filterStatus('CONSULTING')" class="tab-filter whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0" data-status="CONSULTING">In Room</button>
+                <button onclick="filterStatus('COMPLETED')" class="tab-filter whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0" data-status="COMPLETED">Completed</button>
             </div>
 
             <!-- Search Input -->
