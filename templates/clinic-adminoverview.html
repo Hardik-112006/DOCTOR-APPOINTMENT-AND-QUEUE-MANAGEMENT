@@ -51,7 +51,7 @@
 
     <!-- Past 7 Days Activity Section (Vertical Bar Chart) -->
     <div class="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
                 <h3 data-i18n="dailyProgressTitle" class="font-extrabold text-slate-900 text-base flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
@@ -59,11 +59,24 @@
                 </h3>
                 <p data-i18n="dailyProgressSubtitle" class="text-xs text-slate-500 mt-0.5">Real-time completed vs total scheduled consultation throughput per day.</p>
             </div>
-            <div id="chart-legend-container" class="flex items-center gap-2 flex-wrap text-xs">
-                <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
-                    <span data-i18n="past7DaysActivity">Past 7 Days</span>
-                </span>
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <!-- Download 7-Day Report Button -->
+                <button type="button" 
+                        onclick="download7DayReport()" 
+                        class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-white hover:bg-blue-50 text-blue-700 hover:text-blue-800 font-bold rounded-xl text-xs border border-blue-200 shadow-xs hover:border-blue-300 transition-all flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[38px] active:scale-95" 
+                        aria-label="Download 7-day activity report"
+                        title="Download 7-Day Activity Report as CSV">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    <span data-i18n="download7DayReport">Download 7-Day Report</span>
+                </button>
+                <div id="chart-legend-container" class="flex items-center gap-2 flex-wrap text-xs">
+                    <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                        <span data-i18n="past7DaysActivity">Past 7 Days</span>
+                    </span>
+                </div>
             </div>
         </div>
 
@@ -77,38 +90,113 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Left Column: Live Queue Status Breakdown & Doctor Availability (6 Cols) -->
         <div class="lg:col-span-6 space-y-6">
-            <!-- Visual Queue Distribution Bar -->
-            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <div class="flex items-center justify-between">
-                    <h3 class="font-extrabold text-slate-900 text-sm">Today's Queue Load Breakdown</h3>
-                    <span class="text-xs text-slate-400 font-medium">Real-Time Distribution</span>
+            <!-- Today's Queue Load Donut Chart & Breakdown -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                <!-- Header with Live Indicator -->
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3.5">
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2" data-i18n="todaysQueueLoad">
+                            Today's Queue Load
+                        </h3>
+                        <p class="text-xs text-slate-400 font-medium" data-i18n="realTimeDistribution">Real-Time Distribution</p>
+                    </div>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-200 shadow-xs" title="Live queue monitoring">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span data-i18n="liveIndicator">Live</span>
+                    </span>
                 </div>
 
-                <!-- Multi-segment Progress Bar -->
-                <div class="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                    <div id="bar-waiting" class="bg-amber-400 h-full transition-all duration-500" style="width: 0%" title="Waiting"></div>
-                    <div id="bar-called" class="bg-rose-500 h-full transition-all duration-500" style="width: 0%" title="Called"></div>
-                    <div id="bar-consulting" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%" title="Consulting"></div>
-                    <div id="bar-completed" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%" title="Completed"></div>
-                </div>
+                <!-- Donut Chart + Breakdown Content Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
+                    <!-- Left: Donut Chart -->
+                    <div class="sm:col-span-5 flex flex-col items-center justify-center relative min-w-0 py-2">
+                        <div class="relative w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center">
+                            <svg id="queue-donut-svg" class="w-full h-full transform -rotate-90" viewBox="0 0 160 160" role="img" aria-label="Today's queue load distribution donut chart">
+                                <!-- Background Circle -->
+                                <circle cx="80" cy="80" r="56" fill="none" stroke="#F1F5F9" stroke-width="16" />
+                                <!-- Dynamic Segments -->
+                                <circle id="donut-segment-waiting" cx="80" cy="80" r="56" fill="none" stroke="#FBBF24" stroke-width="16" stroke-dasharray="0 352" stroke-dashoffset="0" class="transition-all duration-700 ease-out" />
+                                <circle id="donut-segment-called" cx="80" cy="80" r="56" fill="none" stroke="#F43F5E" stroke-width="16" stroke-dasharray="0 352" stroke-dashoffset="0" class="transition-all duration-700 ease-out" />
+                                <circle id="donut-segment-consulting" cx="80" cy="80" r="56" fill="none" stroke="#2563EB" stroke-width="16" stroke-dasharray="0 352" stroke-dashoffset="0" class="transition-all duration-700 ease-out" />
+                                <circle id="donut-segment-completed" cx="80" cy="80" r="56" fill="none" stroke="#10B981" stroke-width="16" stroke-dasharray="0 352" stroke-dashoffset="0" class="transition-all duration-700 ease-out" />
+                            </svg>
+                            <!-- Donut Center Label -->
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none select-none p-1">
+                                <span id="donut-center-total" class="text-2xl sm:text-3xl font-black text-slate-900 leading-none">0</span>
+                                <span id="donut-center-label" class="text-[8.5px] sm:text-[10px] font-bold text-slate-400 mt-0.5 sm:mt-1 uppercase tracking-tight text-center leading-tight max-w-[76px] sm:max-w-[88px] inline-block" data-i18n="patientsToday">Patients Today</span>
+                            </div>
+                        </div>
+                    </div>
 
-                <!-- Legend -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-2">
-                    <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded bg-amber-400"></span>
-                        <span data-i18n="statusWaiting" class="text-slate-600 font-semibold">Waiting</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded bg-rose-500"></span>
-                        <span data-i18n="statusCalled" class="text-slate-600 font-semibold">Called</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded bg-blue-600"></span>
-                        <span data-i18n="statusConsulting" class="text-slate-600 font-semibold">In Room</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded bg-emerald-500"></span>
-                        <span data-i18n="statusCompleted" class="text-slate-600 font-semibold">Completed</span>
+                    <!-- Right: Detailed Status Breakdown Rows -->
+                    <div class="sm:col-span-7 space-y-3.5 min-w-0">
+                        <!-- Waiting Row -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2 font-bold text-slate-700">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-amber-100 flex-shrink-0"></span>
+                                    <span data-i18n="statusWaiting">Waiting</span>
+                                </div>
+                                <div class="font-extrabold text-slate-900">
+                                    <span id="queue-count-waiting">0</span>
+                                    <span id="queue-percent-waiting" class="text-slate-400 font-semibold text-[11px] ml-1">(0%)</span>
+                                </div>
+                            </div>
+                            <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div id="queue-progress-waiting" class="h-full bg-amber-400 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Called Row -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2 font-bold text-slate-700">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-rose-100 flex-shrink-0"></span>
+                                    <span data-i18n="statusCalled">Called</span>
+                                </div>
+                                <div class="font-extrabold text-slate-900">
+                                    <span id="queue-count-called">0</span>
+                                    <span id="queue-percent-called" class="text-slate-400 font-semibold text-[11px] ml-1">(0%)</span>
+                                </div>
+                            </div>
+                            <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div id="queue-progress-called" class="h-full bg-rose-500 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Consulting / In Room Row -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2 font-bold text-slate-700">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-blue-100 flex-shrink-0"></span>
+                                    <span data-i18n="statusConsulting">Consulting</span>
+                                </div>
+                                <div class="font-extrabold text-slate-900">
+                                    <span id="queue-count-consulting">0</span>
+                                    <span id="queue-percent-consulting" class="text-slate-400 font-semibold text-[11px] ml-1">(0%)</span>
+                                </div>
+                            </div>
+                            <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div id="queue-progress-consulting" class="h-full bg-blue-600 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Completed Row -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2 font-bold text-slate-700">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100 flex-shrink-0"></span>
+                                    <span data-i18n="statusCompleted">Completed</span>
+                                </div>
+                                <div class="font-extrabold text-slate-900">
+                                    <span id="queue-count-completed">0</span>
+                                    <span id="queue-percent-completed" class="text-slate-400 font-semibold text-[11px] ml-1">(0%)</span>
+                                </div>
+                            </div>
+                            <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div id="queue-progress-completed" class="h-full bg-emerald-500 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -147,8 +235,8 @@
     </div>
 
     <!-- Past Activities & Historical Audit Trail Section -->
-    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+    <div class="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
                 <h3 data-i18n="pastActivitiesTitle" class="font-extrabold text-slate-900 text-base flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
@@ -156,9 +244,20 @@
                 </h3>
                 <p data-i18n="pastActivitiesSubtitle" class="text-xs text-slate-500 mt-0.5">Comprehensive chronological log of all past clinic system actions, logins, and consultation events.</p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <!-- Download All Activities Button -->
+                <button type="button" 
+                        onclick="downloadAllActivities()" 
+                        class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-white hover:bg-indigo-50 text-indigo-700 hover:text-indigo-800 font-bold rounded-xl text-xs border border-indigo-200 shadow-xs hover:border-indigo-300 transition-all flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[38px] active:scale-95" 
+                        aria-label="Download all past activities"
+                        title="Download All Past Activities as CSV">
+                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    <span data-i18n="downloadAllActivities">Download All Activities</span>
+                </button>
                 <span class="text-xs text-slate-500 font-semibold" id="past-activities-count">Showing 0 logs</span>
-                <button onclick="loadPastActivities(1)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition-colors" title="Refresh">
+                <button onclick="loadPastActivities(1)" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors min-h-[38px]" title="Refresh">
                     ⟳
                 </button>
             </div>

@@ -82,24 +82,115 @@ async function loadDashboardMetrics() {
         if (elAvgWait) elAvgWait.textContent = `${m.average_waiting_minutes || 0}m`;
         if (elDoctors) elDoctors.textContent = `${m.available_doctors || 0}/${m.total_doctors || 0}`;
 
-        // Visual Queue Breakdown Progress
-        const total = m.total_appointments || 1;
-        const pWaiting = ((m.waiting_patients || 0) / total) * 100;
-        const pCalled = ((m.called_patients || 0) / total) * 100;
-        const pConsulting = ((m.consulting_patients || 0) / total) * 100;
-        const pCompleted = ((m.completed_patients || 0) / total) * 100;
-
-        const barWaiting = document.getElementById('bar-waiting');
-        const barCalled = document.getElementById('bar-called');
-        const barConsulting = document.getElementById('bar-consulting');
-        const barCompleted = document.getElementById('bar-completed');
-
-        if (barWaiting) barWaiting.style.width = `${pWaiting}%`;
-        if (barCalled) barCalled.style.width = `${pCalled}%`;
-        if (barConsulting) barConsulting.style.width = `${pConsulting}%`;
-        if (barCompleted) barCompleted.style.width = `${pCompleted}%`;
+        // Donut Chart & Status Breakdown
+        updateQueueDonutAndBreakdown(m);
     } catch (err) {
         console.error('[ADMIN] Exception during loadDashboardMetrics:', err);
+    }
+}
+
+/**
+ * Modern Donut Chart + Status Breakdown Renderer
+ */
+function updateQueueDonutAndBreakdown(m) {
+    const waiting = Number(m.waiting_patients) || 0;
+    const called = Number(m.called_patients) || 0;
+    const consulting = Number(m.consulting_patients) || 0;
+    const completed = Number(m.completed_patients) || 0;
+
+    const total = waiting + called + consulting + completed;
+
+    // Center dynamic count
+    const elCenterTotal = document.getElementById('donut-center-total');
+    if (elCenterTotal) {
+        elCenterTotal.textContent = total;
+    }
+
+    // Right-side dynamic counts
+    const elCountWaiting = document.getElementById('queue-count-waiting');
+    const elCountCalled = document.getElementById('queue-count-called');
+    const elCountConsulting = document.getElementById('queue-count-consulting');
+    const elCountCompleted = document.getElementById('queue-count-completed');
+
+    if (elCountWaiting) elCountWaiting.textContent = waiting;
+    if (elCountCalled) elCountCalled.textContent = called;
+    if (elCountConsulting) elCountConsulting.textContent = consulting;
+    if (elCountCompleted) elCountCompleted.textContent = completed;
+
+    // Percentages (clean integer %, 0% if total === 0, no NaN or Infinity)
+    const pWaiting = total > 0 ? Math.round((waiting / total) * 100) : 0;
+    const pCalled = total > 0 ? Math.round((called / total) * 100) : 0;
+    const pConsulting = total > 0 ? Math.round((consulting / total) * 100) : 0;
+    const pCompleted = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    // Percentage labels
+    const elPercentWaiting = document.getElementById('queue-percent-waiting');
+    const elPercentCalled = document.getElementById('queue-percent-called');
+    const elPercentConsulting = document.getElementById('queue-percent-consulting');
+    const elPercentCompleted = document.getElementById('queue-percent-completed');
+
+    if (elPercentWaiting) elPercentWaiting.textContent = `(${pWaiting}%)`;
+    if (elPercentCalled) elPercentCalled.textContent = `(${pCalled}%)`;
+    if (elPercentConsulting) elPercentConsulting.textContent = `(${pConsulting}%)`;
+    if (elPercentCompleted) elPercentCompleted.textContent = `(${pCompleted}%)`;
+
+    // Right-side Progress Bars
+    const elProgWaiting = document.getElementById('queue-progress-waiting');
+    const elProgCalled = document.getElementById('queue-progress-called');
+    const elProgConsulting = document.getElementById('queue-progress-consulting');
+    const elProgCompleted = document.getElementById('queue-progress-completed');
+
+    if (elProgWaiting) elProgWaiting.style.width = `${pWaiting}%`;
+    if (elProgCalled) elProgCalled.style.width = `${pCalled}%`;
+    if (elProgConsulting) elProgConsulting.style.width = `${pConsulting}%`;
+    if (elProgCompleted) elProgCompleted.style.width = `${pCompleted}%`;
+
+    // SVG Donut Segments
+    // Radius r = 56, Circumference C = 2 * PI * 56 ≈ 351.858
+    const C = 2 * Math.PI * 56;
+    const segWaiting = document.getElementById('donut-segment-waiting');
+    const segCalled = document.getElementById('donut-segment-called');
+    const segConsulting = document.getElementById('donut-segment-consulting');
+    const segCompleted = document.getElementById('donut-segment-completed');
+
+    if (total === 0) {
+        // Safe Zero-Data State
+        [segWaiting, segCalled, segConsulting, segCompleted].forEach(seg => {
+            if (seg) {
+                seg.setAttribute('stroke-dasharray', `0 ${C}`);
+                seg.setAttribute('stroke-dashoffset', '0');
+            }
+        });
+    } else {
+        const dWaiting = (waiting / total) * C;
+        const dCalled = (called / total) * C;
+        const dConsulting = (consulting / total) * C;
+        const dCompleted = (completed / total) * C;
+
+        let offset = 0;
+
+        if (segWaiting) {
+            segWaiting.setAttribute('stroke-dasharray', `${dWaiting} ${C}`);
+            segWaiting.setAttribute('stroke-dashoffset', `${-offset}`);
+        }
+        offset += dWaiting;
+
+        if (segCalled) {
+            segCalled.setAttribute('stroke-dasharray', `${dCalled} ${C}`);
+            segCalled.setAttribute('stroke-dashoffset', `${-offset}`);
+        }
+        offset += dCalled;
+
+        if (segConsulting) {
+            segConsulting.setAttribute('stroke-dasharray', `${dConsulting} ${C}`);
+            segConsulting.setAttribute('stroke-dashoffset', `${-offset}`);
+        }
+        offset += dConsulting;
+
+        if (segCompleted) {
+            segCompleted.setAttribute('stroke-dasharray', `${dCompleted} ${C}`);
+            segCompleted.setAttribute('stroke-dashoffset', `${-offset}`);
+        }
     }
 }
 
@@ -414,6 +505,96 @@ function selectAdminChartDay(idx) {
 }
 
 /**
+ * Pure Frontend 7-Day Activity Report CSV Generator and Downloader
+ */
+function download7DayReport() {
+    const chartDays = window.__adminChartDays || getDynamicPast7Days();
+    if (!chartDays || chartDays.length === 0) {
+        if (typeof API !== 'undefined' && API.showToast) {
+            API.showToast('No activity data available to generate report.', 'warning');
+        }
+        return;
+    }
+
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const todayISO = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const generatedDateStr = `${pad(today.getDate())} ${shortMonths[today.getMonth()]} ${today.getFullYear()}`;
+
+    // Summary calculations from existing frontend chart data
+    const sumTotal = chartDays.reduce((acc, d) => acc + (Number(d.total) || 0), 0);
+    const sumCompleted = chartDays.reduce((acc, d) => acc + (Number(d.completed) || 0), 0);
+    const avgPct = sumTotal > 0 ? (Math.round((sumCompleted / sumTotal) * 1000) / 10).toFixed(1) : '0';
+
+    // CSV Header & Metadata Rows
+    const rows = [
+        ['DoctorQueue', 'Past 7 Days Activity Report'],
+        ['Generated Date', generatedDateStr],
+        [],
+        ['Date', 'Day', 'Total Appointments', 'Completed Appointments', 'Completion Percentage']
+    ];
+
+    // 7-day Activity Rows
+    chartDays.forEach(d => {
+        const formattedDate = `${d.day_padded} ${d.month_short} ${d.year}`;
+        const dayName = d.weekday_full;
+        const total = d.total || 0;
+        const completed = d.completed || 0;
+        const pct = `${d.percentage}%`;
+        rows.push([formattedDate, dayName, total, completed, pct]);
+    });
+
+    // Summary Rows
+    rows.push([]);
+    rows.push(['Summary', '']);
+    rows.push(['Total Appointments', sumTotal]);
+    rows.push(['Total Completed', sumCompleted]);
+    rows.push(['Overall Completion', `${avgPct}%`]);
+
+    // Encode to standard CSV format
+    const csvContent = rows.map(r => r.map(field => {
+        const str = String(field !== undefined && field !== null ? field : '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return `"${str}"`;
+    }).join(',')).join('\r\n');
+
+    // Create Blob & Trigger Download in browser
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const filename = `doctorqueue_7_day_report_${todayISO}.csv`;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    // Non-intrusive feedback toast
+    if (typeof API !== 'undefined' && API.showToast) {
+        const toastMsg = typeof I18N !== 'undefined' ? I18N.t('reportDownloaded', '7-Day Activity Report downloaded successfully.') : '7-Day Activity Report downloaded successfully.';
+        API.showToast(toastMsg, 'success');
+    }
+}
+
+let adminActivitiesMap = new Map();
+
+function registerAdminActivities(list) {
+    if (!Array.isArray(list)) return;
+    list.forEach(a => {
+        if (!a) return;
+        const key = a.id || `${a.created_at || ''}_${a.action || ''}_${a.user || ''}_${a.entity_id || ''}`;
+        adminActivitiesMap.set(key, a);
+    });
+    window.__adminAllActivities = Array.from(adminActivitiesMap.values());
+}
+
+/**
  * 3. Live Audit Activity Logs Stream
  */
 async function loadActivityLogs() {
@@ -432,6 +613,8 @@ async function loadActivityLogs() {
         }
 
         const activities = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        window.__adminLiveActivities = activities;
+        registerAdminActivities(activities);
         renderLiveAuditLogs(activities);
     } catch (err) {
         console.error('[ADMIN] Exception during loadActivityLogs:', err);
@@ -504,6 +687,8 @@ async function loadPastActivities(page = 1) {
 
     const logs = Array.isArray(res.data) ? res.data : (res.data?.data || []);
     totalPastLogs = typeof res.total === 'number' ? res.total : (res.meta?.total || logs.length);
+    window.__adminPastActivities = logs;
+    registerAdminActivities(logs);
 
     const countBadge = document.getElementById('past-activities-count');
     if (countBadge) {
@@ -550,6 +735,91 @@ async function loadPastActivities(page = 1) {
 
     const totalPages = Math.max(1, Math.ceil(totalPastLogs / PAST_PAGE_LIMIT));
     updatePastPaginationControls(page, totalPages);
+}
+
+/**
+ * Pure Frontend "Download All Activities" CSV Generator and Downloader
+ */
+function downloadAllActivities() {
+    let activities = [];
+    if (adminActivitiesMap.size > 0) {
+        activities = Array.from(adminActivitiesMap.values());
+    } else if (window.__adminAllActivities && window.__adminAllActivities.length > 0) {
+        activities = window.__adminAllActivities;
+    } else if (window.__adminPastActivities && window.__adminPastActivities.length > 0) {
+        activities = window.__adminPastActivities;
+    } else if (window.__adminLiveActivities && window.__adminLiveActivities.length > 0) {
+        activities = window.__adminLiveActivities;
+    }
+
+    if (!activities || activities.length === 0) {
+        if (typeof API !== 'undefined' && API.showToast) {
+            API.showToast('No activity records currently available to download.', 'warning');
+        }
+        return;
+    }
+
+    // Sort chronologically (newest first)
+    activities.sort((a, b) => {
+        const tA = new Date(a.created_at || 0).getTime();
+        const tB = new Date(b.created_at || 0).getTime();
+        return tB - tA;
+    });
+
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const todayISO = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const generatedDateStr = `${pad(today.getDate())} ${shortMonths[today.getMonth()]} ${today.getFullYear()}`;
+
+    // CSV Header & Metadata Rows
+    const rows = [
+        ['DoctorQueue', 'Past Activities & Historical Audit Trail'],
+        ['Generated Date', generatedDateStr],
+        ['Total Records', activities.length],
+        [],
+        ['Date / Time', 'Action', 'Actor / User', 'Role', 'Entity']
+    ];
+
+    // Activity Log Rows
+    activities.forEach(a => {
+        const timeDisplay = a.created_at_full || a.created_at_formatted || a.created_at || '';
+        const actionText = a.action_display || formatAction(a.action);
+        const user = a.user || 'System';
+        const role = a.user_role || 'USER';
+        const entity = a.entity_type && a.entity_id ? `${a.entity_type} #${a.entity_id}` : (a.entity_type || '-');
+
+        rows.push([timeDisplay, actionText, user, role, entity]);
+    });
+
+    // Encode to standard CSV with proper escaping
+    const csvContent = rows.map(r => r.map(field => {
+        const str = String(field !== undefined && field !== null ? field : '').trim();
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return `"${str}"`;
+    }).join(',')).join('\r\n');
+
+    // Create Blob & Trigger Download in browser
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const filename = `doctorqueue_all_past_activities_${todayISO}.csv`;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    // Feedback Toast
+    if (typeof API !== 'undefined' && API.showToast) {
+        const toastMsg = typeof I18N !== 'undefined' ? I18N.t('activitiesDownloaded', 'All activities report downloaded successfully.') : 'All activities report downloaded successfully.';
+        API.showToast(toastMsg, 'success');
+    }
 }
 
 function updatePastPaginationControls(page, totalPages) {

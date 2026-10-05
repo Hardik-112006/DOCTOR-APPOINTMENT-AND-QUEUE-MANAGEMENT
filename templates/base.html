@@ -42,41 +42,52 @@
     <!-- Main Top Navigation -->
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Logo & Brand + Mobile Menu Button -->
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <button onclick="toggleMobileNavMenu()" class="md:hidden p-2 rounded-xl text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors focus:outline-none" aria-label="Toggle navigation menu">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center justify-between h-16 gap-2 sm:gap-4 min-w-0">
+                
+                <!-- LEFT SECTION: Hamburger Button (Mobile/Tablet) + DoctorQueue Brand Logo -->
+                <div class="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+                    <!-- Hamburger Button (Visible below xl breakpoint: < 1280px) -->
+                    <button id="mobile-menu-btn" 
+                            onclick="toggleMobileNavMenu()" 
+                            class="xl:hidden w-11 h-11 min-w-[44px] min-h-[44px] p-2.5 rounded-xl text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center" 
+                            aria-label="Open navigation"
+                            aria-expanded="false"
+                            aria-controls="mobile-nav-menu">
+                        <svg id="hamburger-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg id="hamburger-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
 
+                    <!-- Brand Logo & Badge -->
                     <a href="/" class="flex items-center gap-2 sm:gap-2.5 group shrink-0">
                         <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-teal-500 flex items-center justify-center text-white font-black text-lg sm:text-xl shadow-md group-hover:scale-105 transition-transform shrink-0">
                             +
                         </div>
-                        <div>
+                        <div class="flex items-center">
                             <span data-i18n="appName" class="font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-blue-700 to-teal-600 bg-clip-text text-transparent">DoctorQueue</span>
                             <span data-i18n="clinicBadge" class="hidden sm:inline-block ml-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 rounded-md border border-blue-200">SmartCare</span>
                         </div>
                     </a>
-
-                    <!-- Navigation Links for Quick Access (Desktop) -->
-                    <nav class="hidden md:flex items-center ml-4 lg:ml-8 space-x-1" id="nav-links">
-                        <a href="/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-home"><span data-i18n="navDashboard">Dashboard</span></a>
-                        <a href="/track/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-track"><span data-i18n="navLiveQueue">Live Queue</span></a>
-                        <a href="/book/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-book"><span data-i18n="navBookToken">Book Token</span></a>
-                        <a href="/reception/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-reception"><span data-i18n="navReception">Reception</span></a>
-                        <a href="/doctor/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-doctor"><span data-i18n="navDoctorDesk">Doctor Desk</span></a>
-                        <a href="/dashboard/" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors" id="nav-admin"><span data-i18n="navAdminOverview">Admin Overview</span></a>
-                    </nav>
                 </div>
 
-                <!-- Right Action Bar -->
-                <div class="flex items-center gap-1.5 sm:gap-3">
-                    <!-- Language Selector -->
-                    <div class="relative">
-                        <select id="lang-selector" onchange="switchLanguage(this.value)" class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 border-none rounded-lg px-2 sm:px-2.5 py-1.5 text-slate-700 cursor-pointer focus:ring-2 focus:ring-blue-500 max-w-[110px] sm:max-w-none truncate">
+                <!-- CENTER SECTION: Navigation Links (Desktop >= xl) -->
+                <nav class="hidden xl:flex items-center justify-center space-x-1 shrink-0" id="nav-links">
+                    <a href="/" class="px-2.5 xl:px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors whitespace-nowrap" id="nav-home"><span data-i18n="navDashboard">Dashboard</span></a>
+                    <a href="/track/" class="px-2.5 xl:px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors whitespace-nowrap" id="nav-track"><span data-i18n="navLiveQueue">Live Queue</span></a>
+                    <a href="/book/" class="px-2.5 xl:px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors whitespace-nowrap" id="nav-book"><span data-i18n="navBookToken">Book Token</span></a>
+                    <a href="/reception/" class="px-2.5 xl:px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors whitespace-nowrap" id="nav-reception"><span data-i18n="navReception">Reception</span></a>
+                    <a href="/doctor/" class="px-2.5 xl:px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors whitespace-nowrap" id="nav-doctor"><span data-i18n="navDoctorDesk">Doctor Desk</span></a>
+                    <a href="/dashboard/" class="px-2.5 xl:px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors whitespace-nowrap" id="nav-admin"><span data-i18n="navAdminOverview">Admin Overview</span></a>
+                </nav>
+
+                <!-- RIGHT SECTION: Language Selector + Notifications + User Auth & Logout -->
+                <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                    <!-- Language Selector (Desktop & Tablet) -->
+                    <div class="relative hidden sm:block">
+                        <select id="lang-selector" onchange="switchLanguage(this.value)" class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-700 cursor-pointer focus:ring-2 focus:ring-blue-500 transition-colors focus:outline-none" aria-label="Select Language">
                             <option value="en">English 🇬🇧</option>
                             <option value="hi">हिंदी (Hindi) 🇮🇳</option>
                         </select>
@@ -84,15 +95,15 @@
 
                     <!-- Notification Bell Dropdown -->
                     <div class="relative" id="notification-wrapper">
-                        <button onclick="toggleNotificationDropdown()" class="relative p-1.5 sm:p-2 rounded-xl text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors focus:outline-none" title="Notifications">
+                        <button onclick="toggleNotificationDropdown()" class="relative p-2 rounded-xl text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500" title="Notifications" aria-label="Notifications">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                             </svg>
-                            <span id="notif-badge" class="hidden absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+                            <span id="notif-badge" class="hidden absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
                         </button>
 
-                        <!-- Dropdown Menu -->
-                        <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-72 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 py-3 z-50 transform origin-top-right transition-all">
+                        <!-- Notification Dropdown Menu -->
+                        <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 py-3 z-50 transform origin-top-right transition-all">
                             <div class="px-4 pb-2.5 border-b border-slate-100 flex items-center justify-between">
                                 <span data-i18n="notifications" class="font-bold text-slate-900 text-sm">Notifications</span>
                                 <button onclick="markAllNotificationsRead()" class="text-xs font-semibold text-blue-600 hover:underline"><span data-i18n="markAllRead">Mark all read</span></button>
@@ -103,23 +114,55 @@
                         </div>
                     </div>
 
-                    <!-- User Profile & Auth State -->
+                    <!-- User Profile & Auth State (Desktop) -->
                     <div id="auth-section" class="flex items-center gap-2 shrink-0">
                         <!-- Populated by JS -->
-                        <a href="/login/" class="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all"><span data-i18n="signIn">Sign In</span></a>
+                        <a href="/login/" class="px-3.5 py-2 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all"><span data-i18n="signIn">Sign In</span></a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Mobile Navigation Menu Dropdown (md:hidden) -->
-        <div id="mobile-nav-menu" class="hidden md:hidden border-t border-slate-100 bg-white/98 px-4 py-3 shadow-lg space-y-1">
-            <a href="/" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600"><span data-i18n="navDashboard">Dashboard</span></a>
-            <a href="/track/" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600"><span data-i18n="navLiveQueue">Live Queue</span></a>
-            <a href="/book/" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600"><span data-i18n="navBookToken">Book Token</span></a>
-            <a href="/reception/" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600"><span data-i18n="navReception">Reception</span></a>
-            <a href="/doctor/" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600"><span data-i18n="navDoctorDesk">Doctor Desk</span></a>
-            <a href="/dashboard/" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600"><span data-i18n="navAdminOverview">Admin Overview</span></a>
+        <!-- Mobile & Tablet Navigation Menu Dropdown (xl:hidden) -->
+        <div id="mobile-nav-menu" class="hidden xl:hidden border-t border-slate-200 bg-white/98 backdrop-blur-md px-4 py-4 shadow-xl space-y-3">
+            <!-- 6 Navigation Links -->
+            <div class="space-y-1">
+                <a href="/" onclick="closeMobileNavMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors" id="mob-nav-home">
+                    <span class="text-sm">📊</span> <span data-i18n="navDashboard">Dashboard</span>
+                </a>
+                <a href="/track/" onclick="closeMobileNavMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors" id="mob-nav-track">
+                    <span class="text-sm">⏱️</span> <span data-i18n="navLiveQueue">Live Queue</span>
+                </a>
+                <a href="/book/" onclick="closeMobileNavMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors" id="mob-nav-book">
+                    <span class="text-sm">📅</span> <span data-i18n="navBookToken">Book Token</span>
+                </a>
+                <a href="/reception/" onclick="closeMobileNavMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors" id="mob-nav-reception">
+                    <span class="text-sm">📋</span> <span data-i18n="navReception">Reception</span>
+                </a>
+                <a href="/doctor/" onclick="closeMobileNavMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors" id="mob-nav-doctor">
+                    <span class="text-sm">🩺</span> <span data-i18n="navDoctorDesk">Doctor Desk</span>
+                </a>
+                <a href="/dashboard/" onclick="closeMobileNavMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors" id="mob-nav-admin">
+                    <span class="text-sm">⚙️</span> <span data-i18n="navAdminOverview">Admin Overview</span>
+                </a>
+            </div>
+
+            <!-- Mobile Drawer Divider & Mobile Controls (Language & User Auth) -->
+            <div class="pt-3 border-t border-slate-100 space-y-3">
+                <!-- Mobile Language Selector -->
+                <div class="flex items-center justify-between px-1">
+                    <span class="text-xs font-bold text-slate-600">Language / भाषा:</span>
+                    <select id="mobile-lang-selector" onchange="switchLanguage(this.value)" class="text-xs font-semibold bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Select Language Mobile">
+                        <option value="en">English 🇬🇧</option>
+                        <option value="hi">हिंदी (Hindi) 🇮🇳</option>
+                    </select>
+                </div>
+
+                <!-- Mobile User Auth Details (populated dynamically) -->
+                <div id="mobile-auth-section" class="pt-1">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
         </div>
     </header>
 
@@ -150,68 +193,161 @@
         document.addEventListener('DOMContentLoaded', () => {
             const user = API.getUser();
             const authSection = document.getElementById('auth-section');
+            const mobileAuthSection = document.getElementById('mobile-auth-section');
+
+            const roleColors = {
+                'PATIENT': 'bg-teal-50 text-teal-700 border-teal-200',
+                'RECEPTIONIST': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                'DOCTOR': 'bg-blue-50 text-blue-700 border-blue-200',
+                'ADMIN': 'bg-amber-50 text-amber-700 border-amber-200'
+            };
 
             if (user) {
-                const roleColors = {
-                    'PATIENT': 'bg-teal-50 text-teal-700 border-teal-200',
-                    'RECEPTIONIST': 'bg-indigo-50 text-indigo-700 border-indigo-200',
-                    'DOCTOR': 'bg-blue-50 text-blue-700 border-blue-200',
-                    'ADMIN': 'bg-amber-50 text-amber-700 border-amber-200'
-                };
-
-                authSection.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <div class="text-right hidden sm:block">
-                            <div class="text-xs font-bold text-slate-900 leading-tight">${user.full_name}</div>
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase ${roleColors[user.role] || 'bg-slate-100 text-slate-600'}">${user.role}</span>
+                // Desktop Auth Section
+                if (authSection) {
+                    authSection.innerHTML = `
+                        <div class="flex items-center gap-2.5">
+                            <div class="text-right hidden sm:block">
+                                <div class="text-xs font-bold text-slate-900 leading-tight">${user.full_name || 'User'}</div>
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase ${roleColors[user.role] || 'bg-slate-100 text-slate-600'}">${user.role}</span>
+                            </div>
+                            <button onclick="API.logout()" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500" title="${typeof I18N !== 'undefined' ? I18N.t('signOut', 'Sign Out') : 'Sign Out'}" aria-label="Sign Out">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                            </button>
                         </div>
-                        <button onclick="API.logout()" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="${typeof I18N !== 'undefined' ? I18N.t('signOut', 'Sign Out') : 'Sign Out'}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                        </button>
-                    </div>
-                `;
+                    `;
+                }
 
-                // Highlight active nav link
-                const path = window.location.pathname;
-                if (path === '/' || path === '/portal/') document.getElementById('nav-home')?.classList.add('bg-blue-50', 'text-blue-600');
-                if (path.includes('/track/')) document.getElementById('nav-track')?.classList.add('bg-blue-50', 'text-blue-600');
-                if (path.includes('/book/')) document.getElementById('nav-book')?.classList.add('bg-blue-50', 'text-blue-600');
-                if (path.includes('/reception/')) document.getElementById('nav-reception')?.classList.add('bg-blue-50', 'text-blue-600');
-                if (path.includes('/doctor/')) document.getElementById('nav-doctor')?.classList.add('bg-blue-50', 'text-blue-600');
-                if (path.includes('/dashboard/')) document.getElementById('nav-admin')?.classList.add('bg-blue-50', 'text-blue-600');
+                // Mobile Menu Auth Section
+                if (mobileAuthSection) {
+                    const initial = (user.full_name || user.role || 'U').charAt(0).toUpperCase();
+                    mobileAuthSection.innerHTML = `
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 font-black text-xs flex items-center justify-center shrink-0">
+                                    ${initial}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-slate-900 truncate">${user.full_name || 'User'}</div>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded border uppercase ${roleColors[user.role] || 'bg-slate-100 text-slate-600'}">${user.role}</span>
+                                </div>
+                            </div>
+                            <button onclick="API.logout()" class="px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition-colors shrink-0">
+                                <span data-i18n="signOut">Sign Out</span>
+                            </button>
+                        </div>
+                    `;
+                }
 
                 // Load notifications
                 loadNotifications();
                 setInterval(loadNotifications, 10000);
+            } else {
+                // Guest / Not logged in state
+                if (mobileAuthSection) {
+                    mobileAuthSection.innerHTML = `
+                        <a href="/login/" onclick="closeMobileNavMenu()" class="w-full py-2.5 text-center text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all block">
+                            <span data-i18n="signIn">Sign In</span>
+                        </a>
+                    `;
+                }
             }
 
-            // Highlight nav link even if guest
-            const path = window.location.pathname;
-            if (path === '/' || path === '/portal/') document.getElementById('nav-home')?.classList.add('bg-blue-50', 'text-blue-600');
-            if (path.includes('/track/')) document.getElementById('nav-track')?.classList.add('bg-blue-50', 'text-blue-600');
-            if (path.includes('/book/')) document.getElementById('nav-book')?.classList.add('bg-blue-50', 'text-blue-600');
-            if (path.includes('/reception/')) document.getElementById('nav-reception')?.classList.add('bg-blue-50', 'text-blue-600');
-            if (path.includes('/doctor/')) document.getElementById('nav-doctor')?.classList.add('bg-blue-50', 'text-blue-600');
-            if (path.includes('/dashboard/')) document.getElementById('nav-admin')?.classList.add('bg-blue-50', 'text-blue-600');
+            // Highlight active nav links on both desktop and mobile
+            highlightActiveNavLinks();
 
-            // Apply translations across current page and sync language selector
+            // Apply translations across current page and sync language selectors
             const currentLang = (typeof I18N !== 'undefined') ? I18N.getLanguage() : (localStorage.getItem('doctorqueue_lang') || 'en');
-            const langDropdown = document.getElementById('lang-selector');
-            if (langDropdown) {
-                langDropdown.value = currentLang;
-            }
+            const desktopLang = document.getElementById('lang-selector');
+            const mobileLang = document.getElementById('mobile-lang-selector');
+            if (desktopLang) desktopLang.value = currentLang;
+            if (mobileLang) mobileLang.value = currentLang;
             document.documentElement.lang = currentLang;
+
             if (typeof I18N !== 'undefined') {
                 I18N.applyTranslations();
             }
         });
 
+        function highlightActiveNavLinks() {
+            const path = window.location.pathname;
+            const linkMap = [
+                { ids: ['nav-home', 'mob-nav-home'], match: (p) => p === '/' || p === '/portal/' },
+                { ids: ['nav-track', 'mob-nav-track'], match: (p) => p.includes('/track/') },
+                { ids: ['nav-book', 'mob-nav-book'], match: (p) => p.includes('/book/') },
+                { ids: ['nav-reception', 'mob-nav-reception'], match: (p) => p.includes('/reception/') },
+                { ids: ['nav-doctor', 'mob-nav-doctor'], match: (p) => p.includes('/doctor/') },
+                { ids: ['nav-admin', 'mob-nav-admin'], match: (p) => p.includes('/dashboard/') }
+            ];
+
+            linkMap.forEach(({ ids, match }) => {
+                if (match(path)) {
+                    ids.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.classList.add('bg-blue-50', 'text-blue-600');
+                            el.classList.remove('text-slate-600', 'text-slate-700');
+                        }
+                    });
+                }
+            });
+        }
+
         function toggleMobileNavMenu() {
             const menu = document.getElementById('mobile-nav-menu');
-            if (menu) menu.classList.toggle('hidden');
+            const btn = document.getElementById('mobile-menu-btn');
+            const openIcon = document.getElementById('hamburger-icon-open');
+            const closeIcon = document.getElementById('hamburger-icon-close');
+            if (!menu) return;
+
+            const isHidden = menu.classList.contains('hidden');
+            if (isHidden) {
+                menu.classList.remove('hidden');
+                if (btn) {
+                    btn.setAttribute('aria-expanded', 'true');
+                    btn.setAttribute('aria-label', 'Close navigation');
+                }
+                if (openIcon) openIcon.classList.add('hidden');
+                if (closeIcon) closeIcon.classList.remove('hidden');
+            } else {
+                menu.classList.add('hidden');
+                if (btn) {
+                    btn.setAttribute('aria-expanded', 'false');
+                    btn.setAttribute('aria-label', 'Open navigation');
+                }
+                if (openIcon) openIcon.classList.remove('hidden');
+                if (closeIcon) closeIcon.classList.add('hidden');
+            }
         }
+
+        function closeMobileNavMenu() {
+            const menu = document.getElementById('mobile-nav-menu');
+            const btn = document.getElementById('mobile-menu-btn');
+            const openIcon = document.getElementById('hamburger-icon-open');
+            const closeIcon = document.getElementById('hamburger-icon-close');
+            if (menu && !menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
+                if (btn) {
+                    btn.setAttribute('aria-expanded', 'false');
+                    btn.setAttribute('aria-label', 'Open navigation');
+                }
+                if (openIcon) openIcon.classList.remove('hidden');
+                if (closeIcon) closeIcon.classList.add('hidden');
+            }
+        }
+
+        // Close dropdowns on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeMobileNavMenu();
+                const notifDd = document.getElementById('notif-dropdown');
+                if (notifDd && !notifDd.classList.contains('hidden')) {
+                    notifDd.classList.add('hidden');
+                }
+            }
+        });
 
         async function loadNotifications() {
             if (!API.getToken()) return;
@@ -219,13 +355,13 @@
             if (res.ok && res.data) {
                 const badge = document.getElementById('notif-badge');
                 if (res.data.unread_count > 0) {
-                    badge.classList.remove('hidden');
+                    badge?.classList.remove('hidden');
                 } else {
-                    badge.classList.add('hidden');
+                    badge?.classList.add('hidden');
                 }
 
                 const list = document.getElementById('notif-list');
-                if (res.data.notifications && res.data.notifications.length > 0) {
+                if (list && res.data.notifications && res.data.notifications.length > 0) {
                     list.innerHTML = res.data.notifications.map(n => `
                         <div class="px-4 py-3 hover:bg-slate-50 transition-colors ${n.is_read ? 'opacity-70' : 'bg-blue-50/40'}">
                             <p class="text-xs font-semibold text-slate-800">${n.message}</p>
@@ -238,7 +374,7 @@
 
         function toggleNotificationDropdown() {
             const dd = document.getElementById('notif-dropdown');
-            dd.classList.toggle('hidden');
+            if (dd) dd.classList.toggle('hidden');
         }
 
         async function markAllNotificationsRead() {
@@ -259,7 +395,9 @@
                 I18N.setLanguage(normalized);
             }
             const sel = document.getElementById('lang-selector');
+            const mobSel = document.getElementById('mobile-lang-selector');
             if (sel) sel.value = normalized;
+            if (mobSel) mobSel.value = normalized;
             window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang: normalized } }));
             window.location.reload();
         }
