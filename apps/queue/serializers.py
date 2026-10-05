@@ -15,7 +15,10 @@ class QueueEntrySerializer(serializers.ModelSerializer):
     consultation_fee = serializers.DecimalField(source='appointment.doctor.consultation_fee', max_digits=10, decimal_places=2, read_only=True)
     department_name = serializers.CharField(source='appointment.department.name', read_only=True)
     booking_type = serializers.CharField(source='appointment.booking_type', read_only=True)
+    queue_position = serializers.SerializerMethodField()
     slot_time = serializers.SerializerMethodField()
+    prescription_notes = serializers.SerializerMethodField()
+    consultation_notes = serializers.SerializerMethodField()
 
     class Meta:
         model = QueueEntry
@@ -24,12 +27,28 @@ class QueueEntrySerializer(serializers.ModelSerializer):
             'queue_position', 'patients_ahead', 'eta_minutes', 'status',
             'patient_id', 'patient_name', 'patient_phone', 'patient_gender', 'patient_dob',
             'doctor_id', 'doctor_name', 'specialization', 'consultation_fee', 'department_name', 'booking_type',
-            'slot_time', 'arrival_time', 'called_at', 'consultation_started_at', 'completed_at'
+            'slot_time', 'arrival_time', 'called_at', 'consultation_started_at', 'completed_at',
+            'prescription_notes', 'consultation_notes'
         ]
+
+    def get_queue_position(self, obj):
+        if obj.status == QueueEntry.Status.WAITING:
+            return obj.patients_ahead + 1
+        return 1
 
     def get_slot_time(self, obj):
         if obj.appointment.slot:
             return f"{obj.appointment.slot.start_time.strftime('%H:%M')} - {obj.appointment.slot.end_time.strftime('%H:%M')}"
+        return None
+
+    def get_prescription_notes(self, obj):
+        if hasattr(obj.appointment, 'consultation') and obj.appointment.consultation:
+            return obj.appointment.consultation.prescription_notes
+        return None
+
+    def get_consultation_notes(self, obj):
+        if hasattr(obj.appointment, 'consultation') and obj.appointment.consultation:
+            return obj.appointment.consultation.notes
         return None
 
 class WalkInRegistrationSerializer(serializers.Serializer):

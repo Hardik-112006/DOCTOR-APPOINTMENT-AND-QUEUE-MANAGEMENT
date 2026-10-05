@@ -94,12 +94,12 @@ class PatientQueueStatusView(APIView):
         if appointment_id:
             entry = QueueEntry.objects.filter(appointment_id=appointment_id).select_related(
                 'appointment__patient__user', 'appointment__doctor__user',
-                'appointment__department', 'appointment__slot'
+                'appointment__department', 'appointment__slot', 'appointment__consultation'
             ).first()
         elif token_number:
             entry = QueueEntry.objects.filter(appointment__token_number=token_number).select_related(
                 'appointment__patient__user', 'appointment__doctor__user',
-                'appointment__department', 'appointment__slot'
+                'appointment__department', 'appointment__slot', 'appointment__consultation'
             ).first()
         elif patient:
             # Find today's active appointment for this patient
@@ -108,7 +108,7 @@ class PatientQueueStatusView(APIView):
                 queue_date=target_date
             ).exclude(status=QueueEntry.Status.COMPLETED).select_related(
                 'appointment__patient__user', 'appointment__doctor__user',
-                'appointment__department', 'appointment__slot'
+                'appointment__department', 'appointment__slot', 'appointment__consultation'
             ).order_by('queue_position', '-id').first()
 
             if not entry:
@@ -117,7 +117,7 @@ class PatientQueueStatusView(APIView):
                     appointment__patient=patient
                 ).exclude(status=QueueEntry.Status.COMPLETED).select_related(
                     'appointment__patient__user', 'appointment__doctor__user',
-                    'appointment__department', 'appointment__slot'
+                    'appointment__department', 'appointment__slot', 'appointment__consultation'
                 ).order_by('-queue_date', 'queue_position').first()
 
             if not entry:
@@ -126,7 +126,7 @@ class PatientQueueStatusView(APIView):
                     appointment__patient=patient
                 ).select_related(
                     'appointment__patient__user', 'appointment__doctor__user',
-                    'appointment__department', 'appointment__slot'
+                    'appointment__department', 'appointment__slot', 'appointment__consultation'
                 ).order_by('-queue_date', '-id').first()
 
         if not entry:
@@ -134,6 +134,9 @@ class PatientQueueStatusView(APIView):
                 "data": None,
                 "message": "No active queue entry found."
             }, status=status.HTTP_200_OK)
+
+        QueueService.recalculate_queue(entry.appointment.doctor_id, entry.queue_date)
+        entry.refresh_from_db()
 
         serializer = QueueEntrySerializer(entry)
         return Response({"data": serializer.data})

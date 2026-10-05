@@ -10,9 +10,22 @@ class ConsultationDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, appointment_id):
-        consultation = Consultation.objects.filter(appointment_id=appointment_id).select_related('doctor__user', 'patient__user', 'appointment').first()
+        consultation = Consultation.objects.filter(appointment_id=appointment_id).select_related(
+            'doctor__user', 'doctor__department', 'patient__user', 'appointment__department', 'appointment__slot'
+        ).first()
         if not consultation:
             return Response({"data": None}, status=status.HTTP_200_OK)
+
+        # Security check: Patients can only access their own consultations
+        if request.user.role == 'PATIENT' or (not request.user.is_staff and request.user.role not in ('ADMIN', 'RECEPTIONIST', 'DOCTOR')):
+            if consultation.patient.user != request.user:
+                return Response({
+                    "error": {
+                        "code": "FORBIDDEN",
+                        "message": "You do not have permission to view this prescription."
+                    }
+                }, status=status.HTTP_403_FORBIDDEN)
+
         return Response({"data": ConsultationSerializer(consultation).data})
 
 class SaveConsultationView(APIView):

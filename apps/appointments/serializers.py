@@ -20,6 +20,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
     queue_position = serializers.SerializerMethodField()
     patients_ahead = serializers.SerializerMethodField()
     eta_minutes = serializers.SerializerMethodField()
+    prescription_notes = serializers.SerializerMethodField()
+    consultation_notes = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -29,7 +31,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'department_id', 'department_name',
             'slot_id', 'slot_time', 'appointment_date', 'booking_type',
             'token_number', 'status', 'estimated_wait_minutes', 'queue_status',
-            'queue_position', 'patients_ahead', 'eta_minutes', 'created_at'
+            'queue_position', 'patients_ahead', 'eta_minutes', 'created_at',
+            'prescription_notes', 'consultation_notes'
         ]
 
     def get_slot_time(self, obj):
@@ -43,8 +46,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
         return obj.status
 
     def get_queue_position(self, obj):
-        if hasattr(obj, 'queue_entry'):
-            return obj.queue_entry.queue_position
+        if hasattr(obj, 'queue_entry') and obj.queue_entry:
+            if obj.queue_entry.status == 'WAITING':
+                return obj.queue_entry.patients_ahead + 1
+            return 1
         return None
 
     def get_patients_ahead(self, obj):
@@ -56,6 +61,16 @@ class AppointmentSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'queue_entry'):
             return obj.queue_entry.eta_minutes
         return obj.estimated_wait_minutes
+
+    def get_prescription_notes(self, obj):
+        if hasattr(obj, 'consultation') and obj.consultation:
+            return obj.consultation.prescription_notes
+        return None
+
+    def get_consultation_notes(self, obj):
+        if hasattr(obj, 'consultation') and obj.consultation:
+            return obj.consultation.notes
+        return None
 
 class BookAppointmentSerializer(serializers.Serializer):
     doctor_id = serializers.IntegerField()

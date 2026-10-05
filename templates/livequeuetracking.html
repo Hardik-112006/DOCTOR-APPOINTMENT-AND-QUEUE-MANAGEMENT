@@ -5,13 +5,13 @@
 {% block content %}
 <div class="max-w-5xl mx-auto space-y-6">
     <!-- Top Status Bar with Live Indicator -->
-    <div class="flex items-center justify-between bg-white px-6 py-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div class="flex items-center gap-2.5">
-            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+    <div class="flex flex-wrap sm:flex-nowrap items-center justify-between bg-white px-4 sm:px-6 py-3.5 sm:py-4 rounded-2xl border border-slate-200 shadow-sm gap-3">
+        <div class="flex items-center gap-2 sm:gap-2.5">
+            <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
             <span data-i18n="liveQueueSync" class="text-xs font-bold text-slate-800 uppercase tracking-wider">Live Queue Sync</span>
-            <span class="text-[11px] text-slate-400"><span data-i18n="lastUpdated">Updated</span>: <strong id="last-updated-time" class="text-slate-600">--:--:--</strong></span>
+            <span class="text-[10px] sm:text-[11px] text-slate-400"><span data-i18n="lastUpdated">Updated</span>: <strong id="last-updated-time" class="text-slate-600">--:--:--</strong></span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
             <button onclick="refreshQueueManual()" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all flex items-center gap-1">
                 <span data-i18n="refresh">⟳ Refresh</span>
             </button>
@@ -22,24 +22,24 @@
     </div>
 
     <!-- CALLED ALERT BANNER (High Visibility) -->
-    <div id="called-alert-banner" class="hidden pulsing-alert bg-gradient-to-r from-rose-600 to-red-600 text-white p-6 rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-4 text-center sm:text-left">
-            <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-black text-2xl shrink-0">
+    <div id="called-alert-banner" class="hidden pulsing-alert bg-gradient-to-r from-rose-600 to-red-600 text-white p-5 sm:p-6 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3 sm:gap-4 text-center sm:text-left">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-black text-xl sm:text-2xl shrink-0">
                 🔔
             </div>
             <div>
-                <span data-i18n="turnAlert" class="px-2.5 py-0.5 bg-white text-rose-700 rounded-md text-[11px] font-black uppercase tracking-wider">Turn Alert</span>
-                <h2 data-i18n="proceedToRoom" class="text-xl sm:text-2xl font-black mt-1">Please Proceed to Consultation Room!</h2>
-                <p data-i18n="doctorCalledMsg" class="text-xs text-rose-100 mt-0.5">The doctor has called your token. Please step inside immediately.</p>
+                <span data-i18n="turnAlert" class="px-2.5 py-0.5 bg-white text-rose-700 rounded-md text-[10px] sm:text-[11px] font-black uppercase tracking-wider">Turn Alert</span>
+                <h2 data-i18n="proceedToRoom" class="text-lg sm:text-2xl font-black mt-1">Please Proceed to Consultation Room!</h2>
+                <p data-i18n="doctorCalledMsg" class="text-[11px] sm:text-xs text-rose-100 mt-0.5">The doctor has called your token. Please step inside immediately.</p>
             </div>
         </div>
-        <div data-i18n="doctorIsReady" class="px-4 py-2 rounded-xl bg-white text-rose-700 font-extrabold text-sm shadow-md">
+        <div data-i18n="doctorIsReady" class="px-4 py-2 rounded-xl bg-white text-rose-700 font-extrabold text-xs sm:text-sm shadow-md shrink-0">
             Doctor is Ready
         </div>
     </div>
 
     <!-- Empty State (If no appointments exist at all) -->
-    <div id="empty-state" class="hidden bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-4 shadow-sm">
+    <div id="empty-state" class="hidden bg-white p-8 sm:p-12 rounded-2xl sm:rounded-3xl border border-slate-200 text-center space-y-4 shadow-sm">
         <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 text-2xl font-black flex items-center justify-center mx-auto">
             📋
         </div>
@@ -55,48 +55,71 @@
     <!-- Main Live Tracker Card -->
     <div id="tracker-content" class="space-y-6">
         <!-- Hero Token Card -->
-        <div class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-5 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-            <div class="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl"></div>
+        <div class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-4 sm:p-7 md:p-8 rounded-2xl sm:rounded-3xl shadow-2xl relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl pointer-events-none"></div>
 
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
-                <div>
-                    <span data-i18n="yourActiveToken" class="text-xs font-semibold text-blue-300 uppercase tracking-wider">Your Active Token</span>
-                    <h1 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mt-1 text-white font-mono break-all" id="display-token">--</h1>
+            <div class="flex flex-row items-center justify-between gap-3 pb-4 sm:pb-6 border-b border-white/10">
+                <div class="min-w-0 flex-1">
+                    <span data-i18n="yourActiveToken" class="text-[10px] sm:text-xs font-semibold text-blue-300 uppercase tracking-wider block">Your Active Token</span>
+                    <h1 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mt-0.5 sm:mt-1 text-white font-mono truncate" id="display-token">--</h1>
                 </div>
-                <div class="text-left sm:text-right">
-                    <span id="display-status-badge" class="px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-md">
+                <div class="flex flex-col items-end gap-1 shrink-0">
+                    <span id="display-status-badge" class="px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-md whitespace-nowrap">
                         WAITING
                     </span>
-                    <div class="text-xs text-slate-300 mt-2 font-medium" id="display-booking-type">ONLINE</div>
+                    <div class="text-[11px] sm:text-xs text-slate-300 font-medium" id="display-booking-type">ONLINE</div>
                 </div>
             </div>
 
             <!-- 3 Core Metrics: Position, Ahead, ETA -->
-            <div class="grid grid-cols-3 gap-2 sm:gap-4 pt-6 text-center">
-                <div class="p-2.5 sm:p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
-                    <span data-i18n="queuePosition" class="text-[9px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold block truncate">Queue Position</span>
-                    <span class="text-lg sm:text-3xl font-black text-white mt-1 block" id="display-position">-</span>
+            <div class="grid grid-cols-3 gap-2 sm:gap-4 pt-4 sm:pt-6 text-center">
+                <div class="p-2 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex flex-col justify-center min-w-0">
+                    <span data-i18n="queuePosition" class="text-[8.5px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold block truncate">Queue Position</span>
+                    <span class="text-base sm:text-2xl md:text-3xl font-black text-white mt-0.5 sm:mt-1 block truncate" id="display-position">-</span>
                 </div>
-                <div class="p-2.5 sm:p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
-                    <span data-i18n="patientsAhead" class="text-[9px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold block truncate">Patients Ahead</span>
-                    <span class="text-lg sm:text-3xl font-black text-teal-300 mt-1 block" id="display-ahead">-</span>
+                <div class="p-2 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex flex-col justify-center min-w-0">
+                    <span data-i18n="patientsAhead" class="text-[8.5px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold block truncate">Patients Ahead</span>
+                    <span class="text-base sm:text-2xl md:text-3xl font-black text-teal-300 mt-0.5 sm:mt-1 block truncate" id="display-ahead">-</span>
                 </div>
-                <div class="p-2.5 sm:p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
-                    <span data-i18n="dynamicEta" class="text-[9px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold block truncate">Dynamic ETA</span>
-                    <span class="text-lg sm:text-3xl font-black text-amber-300 mt-1 block" id="display-eta">0 min</span>
+                <div class="p-2 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex flex-col justify-center min-w-0">
+                    <span data-i18n="dynamicEta" class="text-[8.5px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold block truncate">Dynamic ETA</span>
+                    <span class="text-base sm:text-2xl md:text-3xl font-black text-amber-300 mt-0.5 sm:mt-1 block truncate" id="display-eta">0 min</span>
                 </div>
             </div>
 
             <!-- Doctor Subtitle -->
-            <div class="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-300">
-                <div>
-                    <span data-i18n="consultingDoctor" class="text-slate-400">Consulting Doctor:</span>
-                    <strong class="text-white ml-1 font-bold" id="display-doctor">--</strong>
-                    <span class="text-blue-300 text-[11px] ml-1.5" id="display-specialization"></span>
+            <div class="mt-4 sm:mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-300">
+                <div class="flex flex-wrap items-center gap-1 min-w-0">
+                    <span data-i18n="consultingDoctor" class="text-slate-400 shrink-0">Consulting Doctor:</span>
+                    <strong class="text-white font-bold" id="display-doctor">--</strong>
+                    <span class="text-blue-300 text-[11px]" id="display-specialization"></span>
                 </div>
-                <div>
-                    <span data-i18n="department" class="text-slate-400">Department:</span>
-                    <strong class="text-white ml-1 font-bold" id="display-department">--</strong>
+                <div class="flex flex-wrap items-center gap-1 min-w-0">
+                    <span data-i18n="department" class="text-slate-400 shrink-0">Department:</span>
+                    <strong class="text-white font-bold" id="display-department">--</strong>
+                </div>
+            </div>
+
+            <!-- Download Prescription Banner (Visible when consultation is COMPLETED) -->
+            <div id="hero-prescription-container" class="mt-4 sm:mt-5 pt-4 border-t border-white/10 hidden flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white/5 p-3.5 sm:p-4 rounded-2xl border border-white/10">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 animate-pulse"></span>
+                        <span class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider" data-i18n="prescriptionTitle">Medical Prescription</span>
+                    </div>
+                    <p class="text-[11px] sm:text-xs text-slate-300 mt-0.5" id="hero-prescription-status">Doctor has completed consultation and saved prescription.</p>
+                </div>
+                <div id="hero-rx-action-wrapper" class="w-full sm:w-auto shrink-0">
+                    <button type="button" 
+                            id="hero-download-rx-btn" 
+                            onclick="downloadActivePrescription()" 
+                            class="w-full sm:w-auto px-5 py-2.5 sm:py-2.5 bg-white hover:bg-blue-50 text-blue-800 font-black rounded-xl sm:rounded-2xl text-xs sm:text-sm shadow-lg transition-all flex items-center justify-center gap-2 border border-blue-200 min-h-[42px] sm:min-h-[44px] active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                            title="Download Consultation Prescription as PDF">
+                        <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span data-i18n="downloadPrescription">↓ Download Prescription</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -171,5 +194,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="/static/js/patient-queue.js"></script>
 {% endblock %}

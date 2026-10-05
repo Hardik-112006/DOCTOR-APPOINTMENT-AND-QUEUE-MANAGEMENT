@@ -149,9 +149,12 @@ const I18N = (() => {
             cancelAppt: "Cancel",
             currentlyTracking: "Live Tracking",
             trackThis: "Track Live →",
-            generalQueue: "General Queue",
             noAppointmentsBooked: "No appointments booked yet.",
             bookFirstAppt: "+ Book your first appointment",
+            downloadPrescription: "Download Prescription",
+            prescriptionNotAvailable: "Prescription not available yet",
+            prescriptionDownloaded: "Prescription downloaded successfully.",
+            prescriptionTitle: "Medical Prescription",
 
             // Doctor Consultation Desk
             doctorConsultationDesk: "Doctor Consultation Desk",
@@ -520,6 +523,10 @@ const I18N = (() => {
             generalQueue: "सामान्य कतार",
             noAppointmentsBooked: "अभी तक कोई अपॉइंटमेंट बुक नहीं की गई है।",
             bookFirstAppt: "+ अपनी पहली अपॉइंटमेंट बुक करें",
+            downloadPrescription: "प्रिस्क्रिप्शन डाउनलोड करें",
+            prescriptionNotAvailable: "प्रिस्क्रिप्शन अभी उपलब्ध नहीं है",
+            prescriptionDownloaded: "प्रिस्क्रिप्शन सफलतापूर्वक डाउनलोड हो गया।",
+            prescriptionTitle: "चिकित्सा प्रिस्क्रिप्शन",
 
             // Doctor Consultation Desk
             doctorConsultationDesk: "डॉक्टर परामर्श डेस्क",

@@ -1,5 +1,8 @@
+# pyrefly: ignore [missing-import]
 from django.db import transaction
+# pyrefly: ignore [missing-import]
 from django.utils import timezone
+# pyrefly: ignore [missing-import]
 from django.db.models import Max
 from apps.queue.models import QueueEntry
 from apps.appointments.models import Appointment
@@ -36,7 +39,7 @@ class QueueService:
     @staticmethod
     def recalculate_queue(doctor_id, queue_date=None):
         """
-        Recalculates queue positions, patients ahead, and ETA for all active queue entries of a doctor.
+        Recalculates dynamic patients ahead and ETA for all active queue entries of a doctor.
         """
         if not queue_date:
             queue_date = timezone.localdate()
@@ -49,7 +52,7 @@ class QueueService:
                     queue_date=queue_date
                 )
                 .select_related('appointment__doctor__clinic', 'appointment__patient__user')
-                .order_by('queue_position', 'id')
+                .order_by('arrival_time', 'id')
             )
 
             if not entries:
@@ -58,42 +61,38 @@ class QueueService:
             clinic = entries[0].appointment.doctor.clinic
             avg_consult_minutes = clinic.average_consultation_minutes if clinic else 10
 
-            waiting_patients_ahead = 0
-            # Check if there is currently a patient consulting or called
-            active_consulting = any(e.status in (QueueEntry.Status.CONSULTING, QueueEntry.Status.CALLED) for e in entries)
+            # In-room / Called patients
+            active_in_room = [e for e in entries if e.status in (QueueEntry.Status.CONSULTING, QueueEntry.Status.CALLED)]
+            for active_entry in active_in_room:
+                active_entry.patients_ahead = 0
+                active_entry.eta_minutes = 0
+                active_entry.save(update_fields=['patients_ahead', 'eta_minutes'])
+                Appointment.objects.filter(id=active_entry.appointment_id).update(
+                    estimated_wait_minutes=0
+                )
 
+            # Waiting patients in FIFO arrival order
+            waiting_entries = [e for e in entries if e.status == QueueEntry.Status.WAITING]
+            in_room_offset = len(active_in_room)
+
+            for idx, entry in enumerate(waiting_entries):
+                entry.patients_ahead = idx + in_room_offset
+                entry.eta_minutes = entry.patients_ahead * avg_consult_minutes
+                entry.save(update_fields=['patients_ahead', 'eta_minutes'])
+
+                Appointment.objects.filter(id=entry.appointment_id).update(
+                    estimated_wait_minutes=entry.eta_minutes,
+                    status=Appointment.Status.WAITING
+                )
+
+            # Completed / Inactive entries
             for entry in entries:
-                if entry.status == QueueEntry.Status.WAITING:
-                    entry.patients_ahead = waiting_patients_ahead
-                    # If someone is currently consulting, each waiting patient wait is (ahead + 1) * avg_minutes
-                    # If nobody is consulting, the top waiting patient is next (ahead * avg_minutes)
-                    multiplier = waiting_patients_ahead if not active_consulting else waiting_patients_ahead + 1
-                    entry.eta_minutes = multiplier * avg_consult_minutes
-                    entry.save(update_fields=['patients_ahead', 'eta_minutes'])
-
-                    # Sync estimated wait on appointment
-                    Appointment.objects.filter(id=entry.appointment_id).update(
-                        estimated_wait_minutes=entry.eta_minutes,
-                        status=Appointment.Status.WAITING
-                    )
-                    waiting_patients_ahead += 1
-
-                elif entry.status in (QueueEntry.Status.CALLED, QueueEntry.Status.CONSULTING):
+                if entry.status not in (QueueEntry.Status.WAITING, QueueEntry.Status.CALLED, QueueEntry.Status.CONSULTING):
                     entry.patients_ahead = 0
                     entry.eta_minutes = 0
                     entry.save(update_fields=['patients_ahead', 'eta_minutes'])
                     Appointment.objects.filter(id=entry.appointment_id).update(
-                        estimated_wait_minutes=0,
-                        status=Appointment.Status.CALLED if entry.status == QueueEntry.Status.CALLED else Appointment.Status.CONSULTING
-                    )
-
-                elif entry.status == QueueEntry.Status.COMPLETED:
-                    entry.patients_ahead = 0
-                    entry.eta_minutes = 0
-                    entry.save(update_fields=['patients_ahead', 'eta_minutes'])
-                    Appointment.objects.filter(id=entry.appointment_id).update(
-                        estimated_wait_minutes=0,
-                        status=Appointment.Status.COMPLETED
+                        estimated_wait_minutes=0
                     )
 
             return entries

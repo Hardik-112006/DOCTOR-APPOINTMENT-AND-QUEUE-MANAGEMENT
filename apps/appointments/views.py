@@ -1,6 +1,13 @@
+# pyrefly: ignore [missing-import]
 from rest_framework.views import APIView
+# pyrefly: ignore [missing-import]
 from rest_framework.response import Response
+
+# pyrefly: ignore [missing-import]
 from rest_framework import permissions, status
+# pyrefly: ignore [missing-import]
+from django.utils import timezone
+# pyrefly: ignore [missing-import]
 from apps.appointments.models import Appointment
 from apps.appointments.serializers import AppointmentSerializer, BookAppointmentSerializer
 from apps.appointments.services import AppointmentService
@@ -66,12 +73,19 @@ class MyAppointmentsView(APIView):
 
         if patient:
             appts = Appointment.objects.filter(patient=patient).select_related(
-                'doctor__user', 'doctor__department', 'department', 'slot', 'patient__user'
+                'doctor__user', 'doctor__department', 'department', 'slot', 'patient__user', 'consultation', 'queue_entry'
             ).order_by('-appointment_date', '-id')
         else:
             appts = Appointment.objects.filter(patient__user=request.user).select_related(
-                'doctor__user', 'doctor__department', 'department', 'slot', 'patient__user'
+                'doctor__user', 'doctor__department', 'department', 'slot', 'patient__user', 'consultation', 'queue_entry'
             ).order_by('-appointment_date', '-id')
+
+        # Dynamically recalculate doctor queues for active appointments today
+        from apps.queue.services import QueueService
+        today = timezone.localdate()
+        doc_ids = appts.filter(appointment_date=today, status=Appointment.Status.WAITING).values_list('doctor_id', flat=True).distinct()
+        for doc_id in doc_ids:
+            QueueService.recalculate_queue(doc_id, today)
 
         serializer = AppointmentSerializer(appts, many=True)
         return Response({"data": serializer.data})
