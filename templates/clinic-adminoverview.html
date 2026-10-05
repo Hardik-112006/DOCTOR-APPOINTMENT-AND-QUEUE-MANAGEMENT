@@ -49,24 +49,27 @@
         </div>
     </div>
 
-    <!-- Daily Progress Section (Horizontal Progress Bars for each day) -->
-    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+    <!-- Past 7 Days Activity Section (Vertical Bar Chart) -->
+    <div class="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
                 <h3 data-i18n="dailyProgressTitle" class="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                    Daily Consultation Progress & Throughput
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                    <span>Past 7 Days Activity</span>
                 </h3>
                 <p data-i18n="dailyProgressSubtitle" class="text-xs text-slate-500 mt-0.5">Real-time completed vs total scheduled consultation throughput per day.</p>
             </div>
-            <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold">
-                Past 7 Days
-            </span>
+            <div id="chart-legend-container" class="flex items-center gap-2 flex-wrap text-xs">
+                <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                    <span data-i18n="past7DaysActivity">Past 7 Days</span>
+                </span>
+            </div>
         </div>
 
-        <!-- Daily Progress Bars List Container -->
-        <div class="space-y-4" id="daily-progress-container">
-            <div class="p-4 text-center text-slate-400 text-xs animate-pulse">Loading daily throughput metrics...</div>
+        <!-- Daily Progress Vertical Bar Chart Container -->
+        <div class="w-full" id="daily-progress-container">
+            <div class="p-8 text-center text-slate-400 text-xs animate-pulse">Loading daily throughput metrics...</div>
         </div>
     </div>
 

@@ -135,47 +135,282 @@ function renderDailyProgress(days) {
     const container = document.getElementById('daily-progress-container');
     if (!container) return;
 
-    if (!days || days.length === 0) {
-        container.innerHTML = `<div class="p-4 text-center text-slate-400 text-xs">No daily consultation data recorded yet.</div>`;
-        return;
-    }
+    // 1. Calculate dynamic 7 calendar days chronologically from current date
+    const chartDays = getDynamicPast7Days(days);
 
-    const completedLabel = typeof I18N !== 'undefined' ? I18N.t('completed', 'completed') : 'completed';
-    const totalLabel = typeof I18N !== 'undefined' ? I18N.t('total', 'total') : 'total';
-    const todayBadgeText = typeof I18N !== 'undefined' ? I18N.t('today', 'Today') : 'Today';
+    // 2. Compute labels and i18n
+    const completedLabel = typeof I18N !== 'undefined' ? I18N.t('completed', 'Completed') : 'Completed';
+    const totalLabel = typeof I18N !== 'undefined' ? I18N.t('total', 'Total') : 'Total';
+    const completionLabel = typeof I18N !== 'undefined' ? I18N.t('completion', 'Completion') : 'Completion';
+    const todayLabel = typeof I18N !== 'undefined' ? I18N.t('today', 'Today') : 'Today';
+    const dateLabel = typeof I18N !== 'undefined' ? I18N.t('date', 'Date') : 'Date';
 
-    container.innerHTML = days.map(d => {
-        const total = d.total || 0;
-        const completed = d.completed || 0;
-        const pct = total > 0 ? (typeof d.percentage === 'number' ? d.percentage : parseFloat(d.percentage || 0)) : 0.0;
-        const isToday = !!d.is_today;
+    // 3. Compute 7-day summary metrics for legend pills
+    const sumTotal = chartDays.reduce((acc, d) => acc + d.total, 0);
+    const sumCompleted = chartDays.reduce((acc, d) => acc + d.completed, 0);
+    const avgPct = sumTotal > 0 ? (Math.round((sumCompleted / sumTotal) * 1000) / 10) : 0.0;
 
-        // Progress bar color gradient based on completion rate
-        let barColor = 'bg-emerald-500';
-        if (pct < 30 && total > 0) barColor = 'bg-amber-500';
-        else if (pct >= 80) barColor = 'bg-gradient-to-r from-teal-500 to-emerald-600';
-
-        return `
-            <div class="p-3.5 rounded-2xl border ${isToday ? 'border-blue-300 bg-blue-50/20 shadow-sm' : 'border-slate-100 bg-slate-50/50'} space-y-2">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="font-extrabold text-slate-900">${d.day_name}</span>
-                        <span class="text-slate-400 font-medium font-mono">(${d.date_formatted || d.date})</span>
-                        ${isToday ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 uppercase tracking-wider">${todayBadgeText}</span>` : ''}
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="font-bold text-slate-700 text-xs font-mono">${completed} ${completedLabel} / ${total} ${totalLabel}</span>
-                        <span class="font-black text-xs ${pct >= 50 ? 'text-emerald-700' : 'text-slate-700'}">${pct}%</span>
-                    </div>
-                </div>
-
-                <!-- Horizontal Progress Bar -->
-                <div class="h-3 w-full bg-slate-200 rounded-full overflow-hidden shadow-inner flex">
-                    <div class="${barColor} h-full transition-all duration-700 rounded-full" style="width: ${Math.min(pct, 100)}%;"></div>
-                </div>
+    const legendContainer = document.getElementById('chart-legend-container');
+    if (legendContainer) {
+        legendContainer.innerHTML = `
+            <div class="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-800 rounded-xl border border-blue-200/80 font-bold shadow-xs">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-sm"></span>
+                <span>${totalLabel}:</span>
+                <span class="font-black text-blue-900 font-mono">${sumTotal}</span>
+            </div>
+            <div class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200/80 font-bold shadow-xs">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 shadow-sm"></span>
+                <span>${completedLabel}:</span>
+                <span class="font-black text-emerald-900 font-mono">${sumCompleted}</span>
+            </div>
+            <div class="hidden xs:flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-xl border border-slate-200 font-bold shadow-xs">
+                <span>${completionLabel}:</span>
+                <span class="font-black font-mono ${avgPct >= 50 ? 'text-emerald-700' : 'text-slate-800'}">${avgPct}%</span>
             </div>
         `;
-    }).join('');
+    }
+
+    // 4. Compute Y-Axis max scale with nice headroom
+    const maxVal = Math.max(...chartDays.map(d => Math.max(d.total, d.completed)), 0);
+    const yMax = maxVal > 0 ? (maxVal <= 4 ? 4 : Math.ceil(maxVal * 1.25)) : 4;
+    const tickMidTop = Math.round(yMax * 0.67);
+    const tickMidBottom = Math.round(yMax * 0.33);
+
+    // 5. Store globally for interactive touch/click selection
+    window.__adminChartDays = chartDays;
+
+    // 6. Generate Vertical Grouped Bar Chart HTML
+    container.innerHTML = `
+        <div class="bg-slate-50/60 rounded-3xl p-3 sm:p-6 border border-slate-200/80 space-y-4">
+            <!-- Chart Drawing Box -->
+            <div class="relative w-full h-56 sm:h-64 flex">
+                <!-- Left Y-Axis Scale -->
+                <div class="w-6 sm:w-8 h-full flex flex-col justify-between items-end pr-2 text-[10px] font-mono font-bold text-slate-400 select-none pb-7">
+                    <span>${yMax}</span>
+                    <span>${tickMidTop}</span>
+                    <span>${tickMidBottom}</span>
+                    <span>0</span>
+                </div>
+
+                <!-- Plot Area with Horizontal Grid Lines & 7 Grouped Bar Columns -->
+                <div class="relative flex-1 h-full flex flex-col justify-between">
+                    <!-- Background Grid Lines -->
+                    <div class="absolute inset-0 flex flex-col justify-between pointer-events-none pb-7">
+                        <div class="w-full border-b border-dashed border-slate-200"></div>
+                        <div class="w-full border-b border-dashed border-slate-200"></div>
+                        <div class="w-full border-b border-dashed border-slate-200"></div>
+                        <div class="w-full border-b border-slate-300"></div>
+                    </div>
+
+                    <!-- 7 Day Columns Grid -->
+                    <div class="relative z-10 grid grid-cols-7 h-full w-full gap-1 sm:gap-2">
+                        ${chartDays.map((d, idx) => {
+                            const totalPct = yMax > 0 ? Math.min(100, Math.max(d.total > 0 ? 5 : 0, (d.total / yMax) * 100)) : 0;
+                            const completedPct = yMax > 0 ? Math.min(100, Math.max(d.completed > 0 ? 5 : 0, (d.completed / yMax) * 100)) : 0;
+                            
+                            // Align tooltip so edges don't overflow on small mobile screens
+                            let tooltipPosClass = "left-1/2 -translate-x-1/2";
+                            let arrowPosClass = "left-1/2 -translate-x-1/2";
+                            if (idx === 0) {
+                                tooltipPosClass = "left-0 translate-x-0 sm:left-1/2 sm:-translate-x-1/2";
+                                arrowPosClass = "left-4 sm:left-1/2 sm:-translate-x-1/2";
+                            } else if (idx === 6) {
+                                tooltipPosClass = "right-0 translate-x-0 sm:left-1/2 sm:-translate-x-1/2";
+                                arrowPosClass = "right-4 sm:left-1/2 sm:-translate-x-1/2";
+                            }
+
+                            return `
+                                <div class="group relative flex flex-col justify-between items-center h-full px-0.5 sm:px-1 cursor-pointer rounded-2xl hover:bg-blue-50/50 transition-colors"
+                                     onclick="selectAdminChartDay(${idx})"
+                                     tabindex="0"
+                                     role="button"
+                                     aria-label="${d.tooltip_date_label}: ${d.completed} completed out of ${d.total} total">
+                                    
+                                    <!-- Hover / Touch Tooltip Popup -->
+                                    <div class="absolute bottom-[90%] mb-2 ${tooltipPosClass} opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 z-30 transform group-hover:-translate-y-1 group-focus:-translate-y-1 w-48 sm:w-56">
+                                        <div class="bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-2xl border border-slate-700/80 text-xs space-y-1.5">
+                                            <div class="flex items-center justify-between pb-1.5 border-b border-slate-700/80">
+                                                <div class="text-[11px] font-extrabold text-slate-100 truncate">${d.tooltip_date_label}</div>
+                                                ${d.is_today ? `<span class="px-1.5 py-0.2 bg-blue-500 text-white rounded-md text-[9px] font-black uppercase tracking-wider">${todayLabel}</span>` : ''}
+                                            </div>
+                                            <div class="flex items-center justify-between font-mono text-[11px] pt-0.5">
+                                                <span class="text-blue-300 flex items-center gap-1.5">
+                                                    <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                                                    ${totalLabel}:
+                                                </span>
+                                                <span class="font-bold text-white text-xs">${d.total}</span>
+                                            </div>
+                                            <div class="flex items-center justify-between font-mono text-[11px]">
+                                                <span class="text-emerald-300 flex items-center gap-1.5">
+                                                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                                    ${completedLabel}:
+                                                </span>
+                                                <span class="font-bold text-white text-xs">${d.completed}</span>
+                                            </div>
+                                            <div class="flex items-center justify-between font-mono text-[11px] pt-1 border-t border-slate-800">
+                                                <span class="text-slate-300">${completionLabel}:</span>
+                                                <span class="font-black ${d.percentage >= 50 ? 'text-emerald-400' : 'text-slate-200'}">${d.percentage}%</span>
+                                            </div>
+                                        </div>
+                                        <!-- Arrow Pointer -->
+                                        <div class="w-2.5 h-2.5 bg-slate-900 rotate-45 absolute -bottom-1 ${arrowPosClass} border-r border-b border-slate-700/80"></div>
+                                    </div>
+
+                                    <!-- Grouped Vertical Bars Area (Total & Completed) -->
+                                    <div class="w-full h-full flex items-end justify-center gap-1 sm:gap-2 pb-2">
+                                        <!-- Total Bar (Blue) -->
+                                        <div class="flex flex-col items-center justify-end h-full w-2.5 sm:w-4 lg:w-6" title="${totalLabel}: ${d.total}">
+                                            ${d.total > 0 ? `
+                                                <span class="text-[9px] font-black text-blue-700 font-mono opacity-0 group-hover:opacity-100 transition-opacity mb-0.5">${d.total}</span>
+                                                <div class="w-full bg-gradient-to-t from-blue-700 via-blue-600 to-blue-500 rounded-t-md sm:rounded-t-lg shadow-sm transition-all duration-500 group-hover:brightness-110" style="height: ${totalPct}%;"></div>
+                                            ` : `
+                                                <div class="w-full max-w-[14px] bg-slate-200 h-[2px] rounded-full"></div>
+                                            `}
+                                        </div>
+
+                                        <!-- Completed Bar (Teal / Emerald) -->
+                                        <div class="flex flex-col items-center justify-end h-full w-2.5 sm:w-4 lg:w-6" title="${completedLabel}: ${d.completed}">
+                                            ${d.completed > 0 ? `
+                                                <span class="text-[9px] font-black text-emerald-700 font-mono opacity-0 group-hover:opacity-100 transition-opacity mb-0.5">${d.completed}</span>
+                                                <div class="w-full bg-gradient-to-t from-teal-700 via-teal-600 to-emerald-500 rounded-t-md sm:rounded-t-lg shadow-sm transition-all duration-500 group-hover:brightness-110" style="height: ${completedPct}%;"></div>
+                                            ` : `
+                                                <div class="w-full max-w-[14px] bg-slate-200 h-[2px] rounded-full"></div>
+                                            `}
+                                        </div>
+                                    </div>
+
+                                    <!-- Bottom X-Axis Weekday & Date Labels -->
+                                    <div class="h-8 flex flex-col items-center justify-center text-center w-full select-none">
+                                        <div class="font-extrabold text-[10px] sm:text-xs leading-none ${d.is_today ? 'text-blue-700 font-black' : 'text-slate-800'}">
+                                            ${d.weekday_short}
+                                        </div>
+                                        <div class="font-mono text-[9px] sm:text-[10px] font-semibold leading-tight mt-0.5 ${d.is_today ? 'text-blue-600 font-bold' : 'text-slate-400'}">
+                                            <span class="hidden sm:inline">${d.day_padded} ${d.month_short}</span>
+                                            <span class="sm:hidden">${d.day_padded}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Selected Day Detail Strip (Mobile & Accessibility Support) -->
+            <div id="chart-selected-day-strip" class="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span class="font-bold text-slate-800" id="strip-day-title">${chartDays[6].tooltip_date_label}</span>
+                    ${chartDays[6].is_today ? `<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[9px] font-extrabold uppercase">${todayLabel}</span>` : ''}
+                </div>
+                <div class="flex items-center gap-3 font-mono font-bold text-slate-700 text-xs">
+                    <span class="text-blue-700">${totalLabel}: <strong class="text-slate-900" id="strip-total">${chartDays[6].total}</strong></span>
+                    <span class="text-slate-300">•</span>
+                    <span class="text-emerald-700">${completedLabel}: <strong class="text-slate-900" id="strip-completed">${chartDays[6].completed}</strong></span>
+                    <span class="text-slate-300">•</span>
+                    <span class="${chartDays[6].percentage >= 50 ? 'text-emerald-700 font-black' : 'text-slate-700'}" id="strip-pct">${chartDays[6].percentage}%</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Helper to dynamically generate the last 7 calendar days chronologically from current date
+ */
+function getDynamicPast7Days(apiData = []) {
+    const apiMap = new Map();
+    if (Array.isArray(apiData)) {
+        apiData.forEach(item => {
+            if (item && item.date) {
+                const dateKey = String(item.date).split('T')[0];
+                apiMap.set(dateKey, item);
+            }
+        });
+    }
+
+    const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const fullDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const today = new Date();
+    const result = [];
+
+    // Chronological order: 6 days ago -> today (i = 6 down to 0)
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+        const y = d.getFullYear();
+        const m = d.getMonth();
+        const dayNum = d.getDate();
+        const padMonth = String(m + 1).padStart(2, '0');
+        const padDay = String(dayNum).padStart(2, '0');
+        const isoKey = `${y}-${padMonth}-${padDay}`;
+
+        const dayOfWeekIndex = d.getDay();
+        const shortWeekday = shortDays[dayOfWeekIndex];
+        const fullWeekday = fullDays[dayOfWeekIndex];
+        const shortMonth = shortMonths[m];
+
+        const matched = apiMap.get(isoKey);
+        const total = matched ? (Number(matched.total) || 0) : 0;
+        const completed = matched ? (Number(matched.completed) || 0) : 0;
+        const inProgress = matched ? (Number(matched.in_progress) || 0) : 0;
+
+        let pct = 0.0;
+        if (total > 0) {
+            if (matched && typeof matched.percentage === 'number') {
+                pct = matched.percentage;
+            } else if (matched && matched.percentage) {
+                pct = parseFloat(matched.percentage) || 0.0;
+            } else {
+                pct = Math.round((completed / total) * 1000) / 10;
+            }
+        }
+        if (isNaN(pct) || !isFinite(pct)) {
+            pct = 0.0;
+        }
+
+        const isToday = (i === 0);
+
+        result.push({
+            date: isoKey,
+            day: dayNum,
+            day_padded: padDay,
+            weekday_short: shortWeekday,
+            weekday_full: fullWeekday,
+            month_short: shortMonth,
+            year: y,
+            tooltip_date_label: `${fullWeekday}, ${padDay} ${shortMonth} ${y}`,
+            is_today: isToday,
+            total: total,
+            completed: completed,
+            in_progress: inProgress,
+            percentage: pct
+        });
+    }
+
+    return result;
+}
+
+/**
+ * Interactive touch / click day selector
+ */
+function selectAdminChartDay(idx) {
+    if (!window.__adminChartDays || !window.__adminChartDays[idx]) return;
+    const d = window.__adminChartDays[idx];
+
+    const titleEl = document.getElementById('strip-day-title');
+    const totalEl = document.getElementById('strip-total');
+    const compEl = document.getElementById('strip-completed');
+    const pctEl = document.getElementById('strip-pct');
+
+    if (titleEl) titleEl.textContent = d.tooltip_date_label;
+    if (totalEl) totalEl.textContent = d.total;
+    if (compEl) compEl.textContent = d.completed;
+    if (pctEl) {
+        pctEl.textContent = `${d.percentage}%`;
+        pctEl.className = d.percentage >= 50 ? 'text-emerald-700 font-black' : 'text-slate-700 font-bold';
+    }
 }
 
 /**
