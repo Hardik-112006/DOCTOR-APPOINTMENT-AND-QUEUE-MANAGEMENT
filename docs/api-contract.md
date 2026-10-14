@@ -217,3 +217,78 @@ Get user in-app notifications and unread badge count.
 
 ### 6.3 `POST /notifications/{id}/mark-read/`
 Mark notification as read.
+
+---
+
+## 7. Role Access, Validation & Staff (v2)
+
+Every role only sees its own panel: patients `/track/` + `/book/`, receptionists `/reception/`, doctors `/doctor/`, admins `/dashboard/`. The site root `/` is the Sign In / Create Account page.
+
+**Role restrictions now enforced by the API**
+| Endpoint | Allowed |
+| --- | --- |
+| `POST /appointments/book/` | `PATIENT` (always booked as `ONLINE`) |
+| `GET /queue/live/` | `DOCTOR` (own queue only), `RECEPTIONIST`, `ADMIN` |
+| `GET /queue/patient-status/` | Patients see only their own entries; staff any |
+| `GET /dashboard/*` | `ADMIN` |
+
+**Booking rules** (`POST /appointments/book/` and walk-ins) — rejected with a readable `error.message` when: the date is in the past, the doctor is unavailable / not validated, the doctor does not consult on that weekday, today's sessions are over, or the chosen slot has already passed.
+
+### 7.1 `POST /appointments/book/` — new optional fields
+```json
+{
+  "doctor_id": 1, "appointment_date": "2026-10-15", "slot_id": 12,
+  "problem_description": "Fever and cough for 3 days",
+  "blood_group": "B+", "age": 30, "weight_kg": "68.5", "height_cm": "172"
+}
+```
+Health fields are saved on the patient's profile.
+
+### 7.2 `GET /queue/patient-status/` — `queue` snapshot
+```json
+"queue": {
+  "is_today": true, "avg_consultation_minutes": 10,
+  "ahead": {"total": 3, "in_room": 1, "walk_in": 1, "online": 2, "checked_in": 2, "not_checked_in": 1},
+  "now_serving": {"token_number": "A-24", "status": "CONSULTING"},
+  "total_waiting": 4, "completed_count": 1, "walk_in_total": 2,
+  "expected_call_at": "2026-10-14T11:40:00+05:30",
+  "board": [{"token_number": "A-24", "booking_type": "ONLINE", "status": "CONSULTING", "is_validated": true, "is_you": false}]
+}
+```
+Queue order is token order (`queue_position`). People ahead = patients in the room + waiting patients with an earlier token. The board never includes names or phone numbers.
+
+### 7.3 `POST /queue/validate/` (alias: `/queue/mark-arrived/`)
+Receptionist validates (checks in) a patient. **Doctors can only call validated patients**; walk-ins are validated automatically. Body: `{"appointment_id": 1}`.
+
+### 7.4 `POST /queue/remark/`
+Receptionist's internal remark (never shown to patients). Body: `{"appointment_id": 1, "remark": "Fee paid"}`.
+
+### 7.5 `POST /queue/walk-in/` — new optional fields
+`problem_description`, `age`, `gender`, `blood_group`, `weight_kg`, `height_cm`. `department_id` is optional (defaults to the doctor's department).
+
+### 7.6 `GET /doctors/roster/?date=YYYY-MM-DD`
+Staff only. Summary (`total`, `on_duty`, `later_today`, `scheduled`, `off`) plus per doctor: `duty_status` (`ON_DUTY`, `LATER_TODAY`, `DONE_FOR_TODAY`, `SCHEDULED`, `OFF_TODAY`, `UNAVAILABLE`), today's `windows`, weekly `availabilities`, `waiting`, `waiting_validated`, `in_room`, `completed`, `now_serving`.
+
+### 7.7 `PUT /doctors/{id}/schedule/`
+Receptionist / admin sets check-in timings and availability. Either field may be sent alone; `availabilities` replaces the whole weekly schedule (overlaps rejected).
+```json
+{"is_available": true, "availabilities": [{"day_of_week": "MON", "start_time": "09:00", "end_time": "13:00"}]}
+```
+`GET /doctors/` and `GET /doctors/{id}/slots/` follow the current schedule; slots carry `is_past`, and the slots response includes `unavailable_reason` when booking is not possible.
+
+### 7.8 Doctor remarks & history
+- `POST /consultations/save/` accepts `doctor_remark` (private to the consulting doctor; hidden from patients, receptionists and the PDF). Saving a draft requires a started consultation (`CONSULTATION_NOT_STARTED`).
+- `GET /consultations/attended/?q=&patient_id=&exclude_appointment_id=&limit=` — the doctor's own past consultations with remarks.
+- `POST /consultations/appointment/{appointment_id}/remark/` — edit the remark later. Body: `{"doctor_remark": "..."}`.
+
+### 7.9 Patient health profile
+`PATCH /auth/me/` (patients): `gender`, `date_of_birth`, `age`, `blood_group`, `weight_kg`, `height_cm`. `GET /auth/me/` returns them (with computed `age`) under `patient`.
+
+### 7.10 Staff accounts
+- `POST /auth/register-staff/` (public) — doctor / receptionist sign-up request; stays `is_verified=false`. Login returns `403 ACCOUNT_PENDING_APPROVAL` until an admin approves.
+  ```json
+  {"role": "DOCTOR", "full_name": "Dr. New", "phone": "9000000099", "password": "Secret@123", "department_id": 3, "specialization": "Dermatology", "experience": 5, "consultation_fee": "600"}
+  ```
+- `GET /staff/?role=DOCTOR|RECEPTIONIST&status=pending|active|removed` (admin)
+- `POST /staff/` (admin) — create an already-validated staff account (same body as above).
+- `POST /staff/{user_id}/approve|reject|remove|restore/` (admin) — `reject` deletes a pending request; `remove` deactivates (history is kept) and `restore` reactivates.

@@ -10,30 +10,42 @@ The system connects **patients, receptionists, doctors, and clinic administrator
 
 ## 🚀 Key Features
 
+> The site opens on **Sign In / Create Account** (seeded demo accounts are listed there for one-click sign-in).
+> Each role sees only its own panel — patients never see reception, doctor or admin pages, and vice versa.
+>
+> **Flow:** Patient books (optional problem description + health details) → token issued → **receptionist validates the patient on arrival** (walk-ins are validated at registration) → doctor calls validated patients in token order → consultation with timer, notes, private remark and prescription → patient (or receptionist, for walk-ins) downloads the prescription PDF.
+
 ### 1. Patient Portal
 
 * Search and discover available doctors and specialties.
 * View doctor fees, schedules, and available slots.
 * Book appointments and generate queue tokens.
 * Prevent double-booking of appointment slots.
-* Track live queue position.
+* Track live queue position: people ahead of you (split into walk-in / online and checked-in / not yet arrived), now-serving token, expected turn time and an anonymised token board.
 * View estimated waiting time (ETA).
-* Receive turn/call notifications.
+* Receive turn/call and check-in notifications.
+* Clear booking result — a confirmation with the token, or a "not booked" message with the exact reason.
+* Optional problem description at booking; health profile (blood group, age, weight, height).
+* Past appointment history with prescription PDF download; English & Hindi.
 
 ### 2. Receptionist Queue Control
 
 * Manage online appointments and walk-in patients from one queue.
 * Register walk-in patients.
 * Generate sequential queue tokens.
-* Check patients in and update queue status.
-* Monitor the current clinic queue.
+* Validate (check in) patients — doctors can call only validated patients.
+* Internal remarks per appointment, cancel tokens, download walk-in patients' prescriptions (any date).
+* Set doctors' weekly check-in timings and mark doctors available / unavailable.
+* Doctors roster: how many doctors, who is on duty now, timings and queue load.
 
 ### 3. Doctor Consultation Desk
 
 * View the current waiting queue.
 * Call the next patient.
 * Update patient consultation status.
-* Add clinical notes and prescriptions.
+* See the patient's problem description and health details (age, blood group, weight, height, BMI).
+* Add clinical notes and prescriptions; consultation timer; prescription PDF.
+* Private remark for each attended patient, with previous-visit history and an "Attended Patients" list.
 * Manage consultation flow:
 
 `CALLED → CONSULTING → COMPLETED`
@@ -45,6 +57,7 @@ The system connects **patients, receptionists, doctors, and clinic administrator
 * Track average waiting time.
 * Monitor active doctors.
 * View queue activity and operational information.
+* Staff management: add, validate (approve / reject sign-up requests), remove and restore doctors and receptionists.
 
 ### 5. Backend & Queue Management
 
