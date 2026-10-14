@@ -11,7 +11,9 @@ const PAST_PAGE_LIMIT = 10;
 let totalPastLogs = 0;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    API.requireAuth(['ADMIN']);
+    if (!API.requireAuth(['ADMIN'])) return;
+
+    document.getElementById('add-staff-form')?.addEventListener('submit', handleAddStaff);
 
     // 1. Initial independent API calls
     await Promise.allSettled([
@@ -19,7 +21,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadDailyProgress(),
         loadActivityLogs(),
         loadDoctorStatuses(),
-        loadPastActivities(1)
+        loadPastActivities(1),
+        loadStaff()
     ]);
 
     // 2. Start independent polling
@@ -651,7 +654,7 @@ function renderLiveAuditLogs(activities) {
                         <span class="text-[10px] font-mono text-slate-400 shrink-0 font-medium">${timeDisplay}</span>
                     </div>
                     <div class="flex items-center gap-2 mt-1 flex-wrap">
-                        <span class="text-[11px] text-slate-600 font-semibold">By ${a.user || 'System'}</span>
+                        <span class="text-[11px] text-slate-600 font-semibold">By ${API.escapeHtml(a.user || 'System')}</span>
                         <span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase ${rolePillClass}">${userRole}</span>
                         ${a.entity_type && a.entity_id ? `
                             <span class="text-[10px] text-slate-400">• ${a.entity_type} #${a.entity_id}</span>
@@ -723,7 +726,7 @@ async function loadPastActivities(page = 1) {
                         <span class="font-bold text-slate-900">${actionText}</span>
                     </div>
                 </td>
-                <td class="py-3 px-3 font-semibold text-slate-700">${a.user || 'System'}</td>
+                <td class="py-3 px-3 font-semibold text-slate-700">${API.escapeHtml(a.user || 'System')}</td>
                 <td class="py-3 px-3">
                     <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${rolePillClass}">${userRole}</span>
                 </td>
@@ -925,11 +928,11 @@ async function loadDoctorStatuses() {
             <div class="p-4 rounded-2xl border border-slate-200 bg-white flex items-center justify-between shadow-sm">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center">
-                        ${docInitial}
+                        ${API.escapeHtml(docInitial)}
                     </div>
                     <div>
-                        <h4 class="font-bold text-slate-900 text-xs leading-tight">${docName}</h4>
-                        <span class="text-[11px] text-teal-600 font-medium">${specTranslated}</span>
+                        <h4 class="font-bold text-slate-900 text-xs leading-tight">${API.escapeHtml(docName)}</h4>
+                        <span class="text-[11px] text-teal-600 font-medium">${API.escapeHtml(specTranslated)}</span>
                     </div>
                 </div>
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isAvail ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">
@@ -951,6 +954,177 @@ function formatAction(action) {
         case 'WALK_IN_REGISTERED': return 'Walk-in Token Issued';
         case 'PATIENT_ARRIVED': return 'Patient Marked Arrived';
         case 'PATIENT_REGISTERED': return 'Patient Account Registered';
+        case 'STAFF_SIGNUP_REQUESTED': return 'Staff Account Requested';
         default: return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+}
+
+/**
+ * 6. Staff Management: add, validate (approve / reject) and remove / restore doctors & receptionists
+ */
+const atr = (key, fallback) => (typeof I18N !== 'undefined' ? I18N.t(key, fallback) : fallback);
+const STAFF_TABS = [
+    ['pending', 'staffPending', 'Pending approval'],
+    ['DOCTOR', 'staffDoctors', 'Doctors'],
+    ['RECEPTIONIST', 'staffReceptionists', 'Receptionists'],
+    ['removed', 'staffRemoved', 'Removed'],
+];
+let staffTab = 'DOCTOR';
+let staffAll = [];
+let departmentsForStaff = [];
+
+function staffBucket(u) {
+    if (!u.is_verified) return 'pending';
+    if (!u.is_active) return 'removed';
+    return u.role;
+}
+
+async function loadStaff() {
+    const res = await API.get('/staff/');
+    if (!res.ok) {
+        document.getElementById('staff-list').innerHTML = `<div class="col-span-full p-4 text-center text-rose-600 text-xs bg-rose-50 rounded-2xl">${API.escapeHtml(res.error?.message || 'Unable to load staff')}</div>`;
+        return;
+    }
+    staffAll = Array.isArray(res.data) ? res.data : [];
+    const pending = staffAll.filter(u => staffBucket(u) === 'pending').length;
+    const alert = document.getElementById('pending-staff-alert');
+    if (alert) {
+        alert.classList.toggle('hidden', pending === 0);
+        document.getElementById('pending-staff-count').textContent = pending;
+    }
+    if (pending > 0 && !loadStaff.initialised) staffTab = 'pending';
+    loadStaff.initialised = true;
+    renderStaff();
+}
+
+function focusStaffTab(tab) {
+    staffTab = tab;
+    renderStaff();
+    document.getElementById('staff-management')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderStaff() {
+    const esc = API.escapeHtml;
+    document.getElementById('staff-tabs').innerHTML = STAFF_TABS.map(([key, i18nKey, fallback]) => {
+        const n = staffAll.filter(u => staffBucket(u) === key).length;
+        const active = staffTab === key;
+        const warn = key === 'pending' && n > 0;
+        return `<button type="button" onclick="focusStaffTab('${key}')" class="whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 ${active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+            ${esc(atr(i18nKey, fallback))} <span class="ml-1 px-1.5 rounded-md ${warn ? 'bg-amber-500 text-white' : (active ? 'bg-white/20' : 'bg-white')}">${n}</span></button>`;
+    }).join('');
+
+    const items = staffAll.filter(u => staffBucket(u) === staffTab);
+    const list = document.getElementById('staff-list');
+    if (items.length === 0) {
+        list.innerHTML = `<div class="col-span-full p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl">${esc(atr('noStaffHere', 'Nobody here.'))}</div>`;
+        return;
+    }
+
+    list.innerHTML = items.map(u => {
+        const doc = u.doctor;
+        const roleCls = u.role === 'DOCTOR' ? 'bg-blue-100 text-blue-800' : 'bg-indigo-100 text-indigo-800';
+        const bucket = staffBucket(u);
+        let actions = '';
+        if (bucket === 'pending') {
+            actions = `
+                <button onclick="staffAction(${u.id}, 'approve')" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold">✓ ${esc(atr('approve', 'Approve'))}</button>
+                <button onclick="staffAction(${u.id}, 'reject')" class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold border border-rose-200">${esc(atr('reject', 'Reject'))}</button>`;
+        } else if (bucket === 'removed') {
+            actions = `<button onclick="staffAction(${u.id}, 'restore')" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold">↺ ${esc(atr('restore', 'Restore'))}</button>`;
+        } else {
+            actions = `<button onclick="staffAction(${u.id}, 'remove')" class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold border border-rose-200">${esc(atr('remove', 'Remove'))}</button>`;
+        }
+        const statusPill = bucket === 'pending'
+            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">${esc(atr('pendingApproval', 'Pending approval'))}</span>`
+            : bucket === 'removed'
+                ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-600">${esc(atr('removedLabel', 'Removed'))}</span>`
+                : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">✓ ${esc(atr('validated', 'Validated'))}</span>`;
+        return `
+            <div class="p-4 rounded-2xl border ${bucket === 'pending' ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200 bg-white'} space-y-2">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <div class="font-bold text-slate-900 text-sm truncate">${esc(u.full_name)}</div>
+                        <div class="text-[11px] text-slate-500 truncate">${esc(u.phone || '')}${u.email ? ' · ' + esc(u.email) : ''}</div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1 shrink-0">
+                        <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${roleCls}">${esc(u.role)}</span>
+                        ${statusPill}
+                    </div>
+                </div>
+                ${doc ? `<div class="text-[11px] text-slate-600">${esc(doc.department_name || '')} · ${esc(doc.specialization || '')} · ${doc.experience} ${esc(atr('yearsShort', 'yrs'))} · ₹${parseFloat(doc.consultation_fee || 0).toFixed(0)}</div>` : ''}
+                <div class="flex items-center justify-between gap-2 pt-1">
+                    <span class="text-[10px] text-slate-400">${esc(atr('joined', 'Joined'))} ${esc(new Date(u.created_at).toLocaleDateString())}</span>
+                    <div class="flex gap-1.5">${actions}</div>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+async function staffAction(userId, action) {
+    const user = staffAll.find(u => u.id === userId);
+    const name = user ? user.full_name : '';
+    const prompts = {
+        reject: atr('confirmReject', 'Reject and delete this staff request?'),
+        remove: atr('confirmRemoveStaff', 'Remove this staff member? They will no longer be able to sign in. Their past appointments and prescriptions are kept.'),
+    };
+    if (prompts[action] && !confirm(`${prompts[action]}\n${name}`)) return;
+
+    const res = await API.post(`/staff/${userId}/${action}/`);
+    if (res.ok) {
+        API.showToast(res.data?.message || 'Done', 'success');
+        await loadStaff();
+        loadDoctorStatuses();
+    } else {
+        API.showToast(res.error?.message || 'Action failed', 'error');
+    }
+}
+
+async function openAddStaffModal() {
+    document.getElementById('as-error').classList.add('hidden');
+    document.getElementById('add-staff-modal').classList.remove('hidden');
+    if (departmentsForStaff.length === 0) {
+        const res = await API.get('/departments/');
+        departmentsForStaff = res.ok && Array.isArray(res.data) ? res.data : [];
+        document.getElementById('as-department').innerHTML = departmentsForStaff.map(d => `<option value="${d.id}">${API.escapeHtml(atr(d.name, d.name))}</option>`).join('');
+    }
+}
+
+function closeAddStaffModal() {
+    document.getElementById('add-staff-modal').classList.add('hidden');
+}
+
+function toggleAddStaffDoctorFields() {
+    document.getElementById('as-doctor-fields').classList.toggle('hidden', document.getElementById('as-role').value !== 'DOCTOR');
+}
+
+async function handleAddStaff(e) {
+    e.preventDefault();
+    const val = (id) => document.getElementById(id).value.trim();
+    const role = val('as-role');
+    const payload = { role, full_name: val('as-name'), phone: val('as-phone'), email: val('as-email') || null, password: document.getElementById('as-password').value };
+    if (role === 'DOCTOR') {
+        Object.assign(payload, {
+            department_id: parseInt(val('as-department')) || null,
+            specialization: val('as-specialization'),
+            experience: parseInt(val('as-experience')) || 0,
+            consultation_fee: val('as-fee') || 0,
+        });
+    }
+    const btn = document.getElementById('as-submit');
+    btn.disabled = true;
+    const res = await API.post('/staff/', payload);
+    btn.disabled = false;
+    if (res.ok) {
+        API.showToast(`${atr('staffAdded', 'Staff account created')}: ${res.data.full_name}`, 'success');
+        document.getElementById('add-staff-form').reset();
+        toggleAddStaffDoctorFields();
+        closeAddStaffModal();
+        staffTab = role;
+        await loadStaff();
+        loadDoctorStatuses();
+    } else {
+        const box = document.getElementById('as-error');
+        box.textContent = res.error?.message || 'Could not create staff account.';
+        box.classList.remove('hidden');
     }
 }

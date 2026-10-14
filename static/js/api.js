@@ -10,6 +10,19 @@ const API = (() => {
     const USER_KEY = 'doctorqueue_current_user';
     const LANG_KEY = 'doctorqueue_lang';
 
+    // Escape any user-supplied text before it goes into innerHTML (names, problem descriptions, remarks...).
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+
+    // Each role has exactly one panel; nobody is offered another role's pages.
+    const ROLE_HOME = {
+        PATIENT: '/track/',
+        RECEPTIONIST: '/reception/',
+        DOCTOR: '/doctor/',
+        ADMIN: '/dashboard/'
+    };
+
     // Toast notification container
     const showToast = (message, type = 'info') => {
         let toastContainer = document.getElementById('dq-toast-container');
@@ -37,7 +50,7 @@ const API = (() => {
         toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl font-medium text-sm transition-all duration-300 transform translate-y-2 opacity-0 ${bgColors[type] || bgColors.info}`;
         toast.innerHTML = `
             <span class="w-6 h-6 flex items-center justify-center rounded-full bg-white/20 font-bold text-xs">${icons[type] || 'ℹ'}</span>
-            <span class="flex-1">${message}</span>
+            <span class="flex-1">${escapeHtml(message)}</span>
             <button class="text-white/70 hover:text-white text-base leading-none font-bold" onclick="this.parentElement.remove()">&times;</button>
         `;
 
@@ -156,7 +169,7 @@ const API = (() => {
                     response = await fetch(url, { ...options, headers });
                 } else {
                     if (window.location.pathname !== '/login/' && window.location.pathname !== '/') {
-                        window.location.href = '/login/?session_expired=1';
+                        window.location.href = '/?session_expired=1';
                     }
                 }
             }
@@ -239,41 +252,28 @@ const API = (() => {
     const logout = () => {
         clearAuth();
         showToast('Logged out successfully', 'info');
-        window.location.href = '/login/';
+        window.location.href = '/';
     };
 
+    // Page guard: signed-out users go to the sign-in page, other roles go back to their own panel.
     const requireAuth = (allowedRoles = []) => {
         const user = getUser();
         const token = getToken();
         if (!token || !user) {
-            window.location.href = '/login/';
+            window.location.href = '/';
             return false;
         }
         if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-            showToast('Unauthorized access for your role', 'warning');
             redirectUserDashboard(user.role);
             return false;
         }
         return true;
     };
 
+    const roleHome = (role) => ROLE_HOME[role] || '/';
+
     const redirectUserDashboard = (role) => {
-        switch (role) {
-            case 'PATIENT':
-                window.location.href = '/track/';
-                break;
-            case 'RECEPTIONIST':
-                window.location.href = '/reception/';
-                break;
-            case 'DOCTOR':
-                window.location.href = '/doctor/';
-                break;
-            case 'ADMIN':
-                window.location.href = '/dashboard/';
-                break;
-            default:
-                window.location.href = '/login/';
-        }
+        window.location.href = roleHome(role);
     };
 
     return {
@@ -291,7 +291,9 @@ const API = (() => {
         setLanguage,
         clearAuth,
         showToast,
+        escapeHtml,
         requireAuth,
+        roleHome,
         redirectUserDashboard
     };
 })();
