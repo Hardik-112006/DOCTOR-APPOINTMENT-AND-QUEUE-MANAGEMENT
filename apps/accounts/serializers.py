@@ -1,6 +1,4 @@
-import datetime
-# pyrefly: ignore [missing-import]
-from django.utils import timezone
+from decimal import Decimal
 # pyrefly: ignore [missing-import]
 from rest_framework import serializers
 # pyrefly: ignore [missing-import]
@@ -8,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import User
 from apps.patients.models import Patient
+from apps.patients.serializers import PatientHealthSerializer
 
 
 class CustomTokenObtainPairSerializer(serializers.Serializer):
@@ -59,6 +58,13 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
                 'message': 'Your account is currently disabled. Please contact clinic administrator.'
             })
 
+        if not user.is_verified:
+            raise serializers.ValidationError({
+                'code': 'ACCOUNT_PENDING_APPROVAL',
+                'message': 'Your staff account is awaiting approval from the clinic administrator.'
+            })
+
+        self.user = user
         refresh = RefreshToken.for_user(user)
         return {
             'refresh': str(refresh),
@@ -77,7 +83,7 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'full_name', 'email', 'phone', 'role', 'language', 'is_active', 'created_at']
+        fields = ['id', 'full_name', 'email', 'phone', 'role', 'language', 'is_active', 'is_verified', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 
@@ -88,8 +94,10 @@ class RegisterPatientSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, min_length=6)
     date_of_birth = serializers.DateField(required=False, allow_null=True)
     gender = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    age = serializers.IntegerField(required=False, allow_null=True)
-    blood_group = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    age = serializers.IntegerField(required=False, allow_null=True, min_value=0, max_value=120)
+    blood_group = serializers.ChoiceField(choices=Patient.BloodGroup.choices, required=False, allow_blank=True, allow_null=True)
+    weight_kg = serializers.DecimalField(max_digits=5, decimal_places=1, required=False, allow_null=True, min_value=Decimal('1'), max_value=Decimal('500'))
+    height_cm = serializers.DecimalField(max_digits=5, decimal_places=1, required=False, allow_null=True, min_value=Decimal('30'), max_value=Decimal('272'))
     language = serializers.ChoiceField(choices=User.Language.choices, default=User.Language.EN, required=False)
 
     def validate_phone(self, value):
@@ -114,15 +122,8 @@ class RegisterPatientSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        dob = validated_data.pop('date_of_birth', None)
-        gender = validated_data.pop('gender', None)
-        age = validated_data.pop('age', None)
-        blood_group = validated_data.pop('blood_group', None)
+        health = {f: validated_data.pop(f, None) for f in PatientHealthSerializer.HEALTH_FIELDS}
         password = validated_data.pop('password')
-
-        if not dob and age:
-            curr_year = timezone.now().year
-            dob = datetime.date(curr_year - int(age), 1, 1)
 
         user = User.objects.create_user(
             email=validated_data.get('email') or None,
@@ -133,10 +134,84 @@ class RegisterPatientSerializer(serializers.Serializer):
             password=password
         )
 
-        Patient.objects.create(
-            user=user,
-            date_of_birth=dob,
-            gender=gender,
-            phone=user.phone
+        patient = Patient.objects.create(user=user, phone=user.phone)
+        PatientHealthSerializer.apply(patient, health)
+        return user
+
+
+class StaffSerializer(serializers.ModelSerializer):
+    doctor = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'full_name', 'email', 'phone', 'role', 'is_active', 'is_verified', 'created_at', 'doctor']
+
+    def get_doctor(self, obj):
+        doctor = getattr(obj, 'doctor_profile', None)
+        if not doctor:
+            return None
+        return {
+            'id': doctor.id,
+            'department_id': doctor.department_id,
+            'department_name': doctor.department.name if doctor.department_id else None,
+            'specialization': doctor.specialization,
+            'experience': doctor.experience,
+            'consultation_fee': str(doctor.consultation_fee),
+            'is_available': doctor.is_available,
+        }
+
+
+class RegisterStaffSerializer(serializers.Serializer):
+    """Creates a doctor or receptionist account. Self sign-ups stay unverified until an admin approves them."""
+    role = serializers.ChoiceField(choices=[
+        (User.Role.DOCTOR.value, User.Role.DOCTOR.label),
+        (User.Role.RECEPTIONIST.value, User.Role.RECEPTIONIST.label),
+    ])
+    full_name = serializers.CharField(max_length=150)
+    phone = serializers.CharField(max_length=20)
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    password = serializers.CharField(write_only=True, min_length=6)
+    department_id = serializers.IntegerField(required=False, allow_null=True)
+    specialization = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    experience = serializers.IntegerField(required=False, min_value=0, max_value=80, default=0)
+    consultation_fee = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, min_value=Decimal('0'), default=0)
+
+    validate_phone = RegisterPatientSerializer.validate_phone
+    validate_email = RegisterPatientSerializer.validate_email
+
+    def validate(self, attrs):
+        if attrs['role'] == User.Role.DOCTOR:
+            from apps.departments.models import Department
+            dept = Department.objects.filter(pk=attrs.get('department_id'), is_active=True).first()
+            if not dept:
+                raise serializers.ValidationError({'department_id': 'Please choose the department this doctor belongs to.'})
+            attrs['department'] = dept
+            if not attrs.get('specialization'):
+                attrs['specialization'] = dept.name
+        return attrs
+
+    def create(self, validated_data):
+        from apps.doctors.models import Doctor
+        verified = self.context.get('verified', False)
+        role = validated_data['role']
+        user = User.objects.create_user(
+            email=validated_data.get('email') or None,
+            phone=validated_data['phone'],
+            full_name=validated_data['full_name'],
+            role=role,
+            password=validated_data['password'],
+            is_verified=verified,
         )
+        if role == User.Role.DOCTOR:
+            dept = validated_data['department']
+            Doctor.objects.create(
+                user=user,
+                clinic=dept.clinic,
+                department=dept,
+                specialization=validated_data['specialization'],
+                experience=validated_data.get('experience') or 0,
+                consultation_fee=validated_data.get('consultation_fee') or 0,
+                # Pending doctors stay hidden from booking until an admin approves them.
+                is_available=verified,
+            )
         return user

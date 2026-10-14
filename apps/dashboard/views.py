@@ -6,10 +6,11 @@ from rest_framework.views import APIView
 # pyrefly: ignore [missing-import]
 from rest_framework.response import Response
 # pyrefly: ignore [missing-import]
-from rest_framework import permissions, status
+from rest_framework import status
 # pyrefly: ignore [missing-import]
 from django.db.models import Q
 from apps.clinics.models import Clinic
+from apps.accounts.permissions import IsClinicAdmin
 from apps.dashboard.models import ActivityLog
 from apps.dashboard.services import DashboardService
 from apps.dashboard.serializers import ActivityLogSerializer
@@ -24,7 +25,7 @@ def resolve_clinic(request, clinic_id=None):
     return None
 
 class ClinicMetricsView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsClinicAdmin]
 
     def get(self, request):
         clinic_id = request.query_params.get('clinic_id')
@@ -42,7 +43,7 @@ class ClinicMetricsView(APIView):
         return Response({"data": metrics})
 
 class ActivityLogsView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsClinicAdmin]
 
     def get(self, request):
         clinic_id = request.query_params.get('clinic_id')
@@ -72,7 +73,7 @@ class ActivityLogsView(APIView):
         })
 
 class DailyProgressView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsClinicAdmin]
 
     def get(self, request):
         clinic_id = request.query_params.get('clinic_id')

@@ -41,6 +41,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.PATIENT)
     language = models.CharField(max_length=10, choices=Language.choices, default=Language.EN)
     is_active = models.BooleanField(default=True)
+    # Staff accounts (doctor/receptionist) that sign up themselves stay unverified until an admin approves them.
+    is_verified = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

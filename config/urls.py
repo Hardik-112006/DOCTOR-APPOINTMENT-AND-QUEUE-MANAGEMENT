@@ -3,8 +3,6 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from config.page_views import (
-    index_redirect_view,
-    dashboard_page_view,
     login_page_view,
     book_appointment_page_view,
     live_queue_page_view,
@@ -18,8 +16,9 @@ urlpatterns = [
     path('django-admin/', admin.site.urls),
 
     # Web Pages (Django Templates)
-    path('', dashboard_page_view, name='page_index'),
-    path('portal/', dashboard_page_view, name='page_dashboard'),
+    # The site opens on Sign In / Create Account; signed-in users are sent to their own role's panel.
+    path('', login_page_view, name='page_index'),
+    path('portal/', login_page_view, name='page_dashboard'),
     path('login/', login_page_view, name='page_login'),
     path('book/', book_appointment_page_view, name='page_book_appointment'),
     path('track/', live_queue_page_view, name='page_live_queue'),
@@ -32,6 +31,7 @@ urlpatterns = [
 
     # REST APIs v1
     path('api/v1/auth/', include('apps.accounts.urls')),
+    path('api/v1/staff/', include('apps.accounts.staff_urls')),
     path('api/v1/departments/', include('apps.departments.urls')),
     path('api/v1/doctors/', include('apps.doctors.urls')),
     path('api/v1/appointments/', include('apps.appointments.urls')),

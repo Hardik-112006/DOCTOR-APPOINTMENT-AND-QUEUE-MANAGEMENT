@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from apps.appointments.models import Appointment
 
 class QueueEntry(models.Model):
@@ -15,6 +16,15 @@ class QueueEntry(models.Model):
     eta_minutes = models.PositiveIntegerField(default=0)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.WAITING)
     arrival_time = models.DateTimeField(null=True, blank=True)
+    # Set when the receptionist validates (checks in) the patient; only validated patients can be called.
+    validated_at = models.DateTimeField(null=True, blank=True)
+    validated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='validated_queue_entries'
+    )
     called_at = models.DateTimeField(null=True, blank=True)
     consultation_started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -33,3 +43,7 @@ class QueueEntry(models.Model):
 
     def __str__(self):
         return f"Queue #{self.queue_position} | {self.appointment.token_number} ({self.status})"
+
+    @property
+    def is_validated(self):
+        return self.validated_at is not None

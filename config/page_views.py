@@ -6,12 +6,6 @@ from django.http import JsonResponse
 # pyrefly: ignore [missing-import]
 from django.db import connection
 
-def index_redirect_view(request):
-    return render(request, 'dashboard.html')
-
-def dashboard_page_view(request):
-    return render(request, 'dashboard.html')
-
 def login_page_view(request):
     return render(request, 'login.html')
 
