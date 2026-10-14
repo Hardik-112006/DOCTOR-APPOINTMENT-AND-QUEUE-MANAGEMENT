@@ -47,6 +47,8 @@ class Appointment(models.Model):
     token_number = models.CharField(max_length=30)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.BOOKED)
     estimated_wait_minutes = models.PositiveIntegerField(default=0)
+    problem_description = models.TextField(null=True, blank=True)
+    reception_remark = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

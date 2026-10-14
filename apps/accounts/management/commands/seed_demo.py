@@ -146,27 +146,36 @@ class Command(BaseCommand):
                     user.is_staff = True
                     user.is_superuser = True
 
+            user.is_verified = True
             user.set_password(pwd)
             user.save()
             users_dict[email] = user
 
         self.stdout.write(f"[OK] {len(users_dict)} Users verified with proper hashed passwords.")
 
+        # Staff sign-up requests waiting for the admin to validate them (Admin > Staff Management > Pending)
+        pending_staff = [
+            ('Dr. Kavita Rao', '9000000020', 'kavita.rao@example.com', User.Role.DOCTOR, 'Dermatology', 'Dermatology', 6, 650.00),
+            ('Sunil Front Desk', '9000000021', 'sunil.desk@example.com', User.Role.RECEPTIONIST, None, None, 0, 0),
+        ]
+
         # 4. PATIENTS
+        # (email, dob, gender, phone, blood_group, weight_kg, height_cm)
         patients_specs = [
-            ('patient@test.com', datetime.date(1996, 4, 12), 'Male', '9000000010'),
-            ('aarav.patient@example.com', datetime.date(2002, 5, 15), 'Male', '9000000001'),
-            ('meera.patient@example.com', datetime.date(1998, 8, 22), 'Female', '9000000006'),
-            ('kabir.patient@example.com', datetime.date(1995, 11, 10), 'Male', '9000000007'),
-            ('ananya.patient@example.com', datetime.date(2001, 2, 18), 'Female', '9000000008'),
-            ('rohan.patient@example.com', datetime.date(1992, 7, 3), 'Male', '9000000009'),
+            ('patient@test.com', datetime.date(1996, 4, 12), 'Male', '9000000010', 'O+', 72.0, 175.0),
+            ('aarav.patient@example.com', datetime.date(2002, 5, 15), 'Male', '9000000001', 'B+', 68.5, 178.0),
+            ('meera.patient@example.com', datetime.date(1998, 8, 22), 'Female', '9000000006', 'A+', 55.0, 162.0),
+            ('kabir.patient@example.com', datetime.date(1995, 11, 10), 'Male', '9000000007', 'AB+', 81.0, 180.0),
+            ('ananya.patient@example.com', datetime.date(2001, 2, 18), 'Female', '9000000008', 'O-', 49.5, 158.0),
+            ('rohan.patient@example.com', datetime.date(1992, 7, 3), 'Male', '9000000009', None, None, None),
         ]
 
         patients_dict = {}
-        for email, dob, gender, phone in patients_specs:
+        for email, dob, gender, phone, blood, weight, height in patients_specs:
             patient, _ = Patient.objects.update_or_create(
                 user=users_dict[email],
-                defaults={'date_of_birth': dob, 'gender': gender, 'phone': phone}
+                defaults={'date_of_birth': dob, 'gender': gender, 'phone': phone,
+                          'blood_group': blood, 'weight_kg': weight, 'height_cm': height}
             )
             patients_dict[email] = patient
         self.stdout.write(f"[OK] {len(patients_dict)} Patients verified.")
@@ -319,6 +328,23 @@ class Command(BaseCommand):
                         )
                         curr_time = end_dt.time()
 
+        for name, phone, email, role, dept_name, spec, exp, fee in pending_staff:
+            pending_user = User.objects.filter(email=email).first() or User(email=email)
+            pending_user.phone = phone
+            pending_user.full_name = name
+            pending_user.role = role
+            pending_user.is_active = True
+            pending_user.is_verified = False
+            pending_user.set_password('Demo@123')
+            pending_user.save()
+            if role == User.Role.DOCTOR:
+                Doctor.objects.update_or_create(
+                    user=pending_user,
+                    defaults={'clinic': clinic, 'department': dept_dict[dept_name], 'specialization': spec,
+                              'experience': exp, 'consultation_fee': fee, 'is_available': False}
+                )
+        self.stdout.write(f"[OK] {len(pending_staff)} staff sign-up requests pending admin approval.")
+
         # Efficient bulk create slots ignoring duplicates
         Slot.objects.bulk_create(slots_to_create, ignore_conflicts=True)
         self.stdout.write(f"[OK] Created/Updated {len(doc_instances)} realistic doctors with weekly availability and {len(slots_to_create)} slots.")
@@ -333,6 +359,17 @@ class Command(BaseCommand):
             s.save()
 
         now = timezone.now()
+        reception_user = users_dict['reception@smartcare.example.com']
+        # token -> (problem description, validated by reception?, reception remark)
+        appt_extras = {
+            'A-24': ('Mild fever and headache since two days.', True, None),
+            'A-25': ('Persistent dry cough, worse at night.', True, 'Fee paid at desk'),
+            'A-26': ('Stomach ache after meals.', True, None),
+            'A-27': ('Routine check-up and blood pressure review.', False, None),
+            'A-28': ('Follow-up for seasonal allergy.', True, None),
+            'N-10': ('Occasional chest discomfort while climbing stairs.', False, None),
+            'N-11': ('Palpitations and shortness of breath.', True, 'Bring previous ECG reports'),
+        }
         appt_specs = [
             (
                 'A-24', 'meera.patient@example.com', slots_rajesh[0] if len(slots_rajesh) > 0 else None,
@@ -353,7 +390,7 @@ class Command(BaseCommand):
             (
                 'A-27', 'aarav.patient@example.com', None,
                 Appointment.BookingType.ONLINE, Appointment.Status.WAITING, 30, 4, 3, 30,
-                QueueEntry.Status.WAITING, now - datetime.timedelta(minutes=8), None, None, None
+                QueueEntry.Status.WAITING, None, None, None, None
             ),
             (
                 'A-28', 'rohan.patient@example.com', None,
@@ -366,6 +403,7 @@ class Command(BaseCommand):
 
         appts_dict = {}
         for token, p_email, slot, b_type, a_stat, est_w, pos, ahead, eta, q_stat, arr, called, started, comp in appt_specs:
+            problem, validated, remark = appt_extras[token]
             appt, _ = Appointment.objects.update_or_create(
                 appointment_date=today,
                 doctor=doc_rajesh,
@@ -376,7 +414,9 @@ class Command(BaseCommand):
                     'slot': slot,
                     'booking_type': b_type,
                     'status': a_stat,
-                    'estimated_wait_minutes': est_w
+                    'estimated_wait_minutes': est_w,
+                    'problem_description': problem,
+                    'reception_remark': remark,
                 }
             )
             appts_dict[token] = appt
@@ -390,13 +430,15 @@ class Command(BaseCommand):
                     'eta_minutes': eta,
                     'status': q_stat,
                     'arrival_time': arr,
+                    'validated_at': arr if validated else None,
+                    'validated_by': reception_user if validated else None,
                     'called_at': called,
                     'consultation_started_at': started,
                     'completed_at': comp
                 }
             )
 
-        # Appointments for Dr. Neha Verma (Dermatology)
+        # Appointments for Dr. Neha Verma (Cardiology)
         doc_neha = doc_instances.get('neha.doctor@example.com')
         if doc_neha:
             slots_neha = list(Slot.objects.filter(doctor=doc_neha, slot_date=today).order_by('start_time')[:4])
@@ -407,7 +449,7 @@ class Command(BaseCommand):
                 (
                     'N-10', 'aarav.patient@example.com', slots_neha[0] if slots_neha else None,
                     Appointment.BookingType.ONLINE, Appointment.Status.WAITING, 15, 6, 0, 15,
-                    QueueEntry.Status.WAITING, now - datetime.timedelta(minutes=10), None, None, None
+                    QueueEntry.Status.WAITING, None, None, None, None
                 ),
                 (
                     'N-11', 'kabir.patient@example.com', slots_neha[1] if len(slots_neha) > 1 else None,
@@ -416,17 +458,20 @@ class Command(BaseCommand):
                 )
             ]
             for token, p_email, slot, b_type, a_stat, est_w, pos, ahead, eta, q_stat, arr, called, started, comp in neha_specs:
+                problem, validated, remark = appt_extras[token]
                 appt, _ = Appointment.objects.update_or_create(
                     appointment_date=today,
                     doctor=doc_neha,
                     patient=patients_dict[p_email],
                     defaults={
                         'token_number': token,
-                        'department': dept_dict['Dermatology'],
+                        'department': doc_neha.department,
                         'slot': slot,
                         'booking_type': b_type,
                         'status': a_stat,
-                        'estimated_wait_minutes': est_w
+                        'estimated_wait_minutes': est_w,
+                        'problem_description': problem,
+                        'reception_remark': remark,
                     }
                 )
                 appts_dict[token] = appt
@@ -440,6 +485,8 @@ class Command(BaseCommand):
                         'eta_minutes': eta,
                         'status': q_stat,
                         'arrival_time': arr,
+                        'validated_at': arr if validated else None,
+                        'validated_by': reception_user if validated else None,
                         'called_at': called,
                         'consultation_started_at': started,
                         'completed_at': comp
@@ -467,9 +514,49 @@ class Command(BaseCommand):
                 'patient': patients_dict['rohan.patient@example.com'],
                 'notes': 'Routine consultation completed.',
                 'prescription_notes': 'Continue prescribed medication and follow-up after 7 days.',
+                'doctor_remark': 'Allergic to dust; asked to return if sneezing persists beyond a week.',
                 'status': Consultation.Status.COMPLETED,
                 'started_at': now - datetime.timedelta(minutes=84),
                 'completed_at': now - datetime.timedelta(minutes=74)
+            }
+        )
+
+        # Aarav's previous visit with Dr. Rajesh last week: past history for the patient, remark for the doctor
+        last_week = today - datetime.timedelta(days=7)
+        past_appt, _ = Appointment.objects.update_or_create(
+            appointment_date=last_week,
+            doctor=doc_rajesh,
+            patient=patients_dict['aarav.patient@example.com'],
+            defaults={
+                'token_number': 'A-12',
+                'department': dept_dict['General Medicine'],
+                'booking_type': Appointment.BookingType.ONLINE,
+                'status': Appointment.Status.COMPLETED,
+                'estimated_wait_minutes': 0,
+                'problem_description': 'Throat pain and mild fever.',
+            }
+        )
+        past_done = now - datetime.timedelta(days=7)
+        QueueEntry.objects.update_or_create(
+            appointment=past_appt,
+            defaults={
+                'queue_date': last_week, 'queue_position': 1, 'status': QueueEntry.Status.COMPLETED,
+                'arrival_time': past_done - datetime.timedelta(minutes=30), 'validated_at': past_done - datetime.timedelta(minutes=30),
+                'validated_by': reception_user, 'called_at': past_done - datetime.timedelta(minutes=15),
+                'consultation_started_at': past_done - datetime.timedelta(minutes=14), 'completed_at': past_done,
+            }
+        )
+        Consultation.objects.update_or_create(
+            appointment=past_appt,
+            defaults={
+                'doctor': doc_rajesh,
+                'patient': patients_dict['aarav.patient@example.com'],
+                'notes': 'Pharyngitis. Throat congested, temperature 99.8F.',
+                'prescription_notes': 'Azithromycin 500mg once daily x 3 days\nWarm saline gargles thrice daily\nParacetamol 650mg SOS for fever',
+                'doctor_remark': 'Student, exams next month - check BP again on next visit.',
+                'status': Consultation.Status.COMPLETED,
+                'started_at': past_done - datetime.timedelta(minutes=14),
+                'completed_at': past_done,
             }
         )
 
@@ -479,7 +566,7 @@ class Command(BaseCommand):
             appointment=appts_dict['A-27'],
             type='QUEUE_UPDATE',
             defaults={
-                'message': 'Your token A-27 is confirmed. There are 3 patients ahead of you.',
+                'message': 'Your token A-27 is confirmed. There are 3 patients ahead of you. Please check in at reception when you arrive.',
                 'is_read': False,
             }
         )

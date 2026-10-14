@@ -64,14 +64,15 @@ class DoctorQueueSystemTests(TestCase):
             is_available=True
         )
 
-        # Weekly availability
-        DoctorAvailability.objects.create(
-            doctor=self.doctor,
-            day_of_week=DoctorAvailability.DayOfWeek.MON,
-            start_time=datetime.time(9, 0),
-            end_time=datetime.time(13, 0),
-            is_active=True
-        )
+        # Weekly availability: every day, all day, so booking-for-today tests don't depend on when they run
+        for day in DoctorAvailability.DayOfWeek.values:
+            DoctorAvailability.objects.create(
+                doctor=self.doctor,
+                day_of_week=day,
+                start_time=datetime.time(0, 0),
+                end_time=datetime.time(23, 59),
+                is_active=True
+            )
 
         self.admin_user = User.objects.create_superuser(
             email="admin@test.com",
@@ -234,6 +235,15 @@ class DoctorQueueSystemTests(TestCase):
 
         self.assertEqual(q3.patients_ahead, 2)
         self.assertEqual(q3.eta_minutes, 20)
+
+        # Doctor cannot call anyone until reception validates them
+        called_entry, err = QueueService.call_next_patient(self.doctor, today)
+        self.assertIsNone(called_entry)
+        self.assertIn("validated", err)
+
+        # Receptionist validates (checks in) all three
+        for appt in (appt1, appt2, appt3):
+            QueueService.validate_entry(appt.id, user=self.receptionist_user)
 
         # Doctor calls next patient
         called_entry, err = QueueService.call_next_patient(self.doctor, today)

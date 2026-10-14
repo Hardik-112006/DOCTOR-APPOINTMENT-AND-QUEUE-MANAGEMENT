@@ -31,13 +31,24 @@ class DashboardService:
         elif action == 'WALK_IN_REGISTERED':
             return f"Walk-in token registered (#{entity_id})" if entity_id else "Walk-in patient registered"
         elif action == 'PATIENT_ARRIVED':
-            return f"Patient checked in / marked arrived (#{entity_id})" if entity_id else "Patient marked arrived"
+            return f"Receptionist validated / checked in patient (#{entity_id})" if entity_id else "Patient validated at reception"
         elif action in ('CALL_NEXT_PATIENT', 'QUEUE_STATUS_CALLED'):
             return f"Doctor called next waiting patient (#{entity_id})" if entity_id else "Doctor called next patient"
         elif action in ('CONSULTATION_STARTED', 'QUEUE_STATUS_CONSULTING'):
             return f"Doctor started consultation in room (#{entity_id})" if entity_id else "Consultation started"
         elif action in ('QUEUE_STATUS_COMPLETED', 'CONSULTATION_COMPLETED'):
             return f"Consultation completed & prescription saved (#{entity_id})" if entity_id else "Consultation completed"
+        elif action == 'RECEPTION_REMARK_UPDATED':
+            return f"Reception remark updated (appointment #{entity_id})" if entity_id else "Reception remark updated"
+        elif action == 'DOCTOR_SCHEDULE_UPDATED':
+            return f"Doctor schedule / availability updated (doctor #{entity_id})" if entity_id else "Doctor schedule updated"
+        elif action == 'STAFF_SIGNUP_REQUESTED':
+            return f"New staff account request awaiting approval (user #{entity_id})" if entity_id else "Staff account requested"
+        elif action.startswith('STAFF_ADDED'):
+            return f"Admin added staff member (user #{entity_id})" if entity_id else "Staff member added"
+        elif action in ('STAFF_APPROVE', 'STAFF_REJECT', 'STAFF_REMOVE', 'STAFF_RESTORE'):
+            verb = {'STAFF_APPROVE': 'approved', 'STAFF_REJECT': 'rejected', 'STAFF_REMOVE': 'removed', 'STAFF_RESTORE': 'restored'}[action]
+            return f"Admin {verb} staff account (user #{entity_id})" if entity_id else f"Staff account {verb}"
         elif action == 'PATIENT_REGISTERED':
             return f"New patient account registered (#{entity_id})" if entity_id else "New patient registered"
         elif action.startswith('USER_LOGIN'):

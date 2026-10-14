@@ -13,6 +13,8 @@ class Consultation(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.RESTRICT, related_name='consultations')
     notes = models.TextField(null=True, blank=True)
     prescription_notes = models.TextField(null=True, blank=True)
+    # Private memory aid for the doctor; never shown to patients or printed on the prescription.
+    doctor_remark = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.STARTED)
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)

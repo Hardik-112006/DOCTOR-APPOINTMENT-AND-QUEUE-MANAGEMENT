@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from apps.appointments.models import Slot, Appointment
 from apps.doctors.serializers import DoctorSerializer
-from apps.patients.serializers import PatientSerializer
+from apps.patients.serializers import PatientSerializer, PatientHealthSerializer
 
 class SlotSerializer(serializers.ModelSerializer):
     class Meta:
@@ -22,6 +22,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     eta_minutes = serializers.SerializerMethodField()
     prescription_notes = serializers.SerializerMethodField()
     consultation_notes = serializers.SerializerMethodField()
+    is_validated = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -32,8 +33,14 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'slot_id', 'slot_time', 'appointment_date', 'booking_type',
             'token_number', 'status', 'estimated_wait_minutes', 'queue_status',
             'queue_position', 'patients_ahead', 'eta_minutes', 'created_at',
+            'problem_description', 'is_validated',
             'prescription_notes', 'consultation_notes'
         ]
+
+    def get_is_validated(self, obj):
+        # Cancelled appointments have no queue entry; the reverse accessor raises, getattr's default covers it
+        entry = getattr(obj, 'queue_entry', None)
+        return bool(entry and entry.is_validated)
 
     def get_slot_time(self, obj):
         if obj.slot:
@@ -72,7 +79,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             return obj.consultation.notes
         return None
 
-class BookAppointmentSerializer(serializers.Serializer):
+class BookAppointmentSerializer(PatientHealthSerializer):
     doctor_id = serializers.IntegerField()
     appointment_date = serializers.DateField()
     slot_id = serializers.IntegerField(required=False, allow_null=True)
@@ -80,3 +87,4 @@ class BookAppointmentSerializer(serializers.Serializer):
         choices=Appointment.BookingType.choices,
         default=Appointment.BookingType.ONLINE
     )
+    problem_description = serializers.CharField(max_length=1000, required=False, allow_blank=True, allow_null=True)

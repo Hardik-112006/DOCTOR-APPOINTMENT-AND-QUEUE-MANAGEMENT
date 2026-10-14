@@ -14,11 +14,12 @@ class ConsultationService:
         return QueueService.update_queue_status(appointment_id, QueueEntry.Status.CONSULTING, user=user)
 
     @classmethod
-    def complete_consultation(cls, appointment_id, notes="", prescription_notes="", user=None):
+    def complete_consultation(cls, appointment_id, notes="", prescription_notes="", doctor_remark=None, user=None):
         return QueueService.update_queue_status(
             appointment_id,
             QueueEntry.Status.COMPLETED,
             user=user,
             notes=notes,
-            prescription_notes=prescription_notes
+            prescription_notes=prescription_notes,
+            doctor_remark=doctor_remark
         )

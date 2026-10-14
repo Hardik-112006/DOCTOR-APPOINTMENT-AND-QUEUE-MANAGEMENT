@@ -1,6 +1,4 @@
 from django.db import transaction
-from django.utils import timezone
-from django.db.models import Max
 from apps.appointments.models import Appointment, Slot
 from apps.queue.models import QueueEntry
 from apps.queue.services import QueueService
@@ -9,8 +7,16 @@ from apps.dashboard.services import DashboardService
 
 class AppointmentService:
     @classmethod
-    def book_appointment(cls, patient, doctor, department, appointment_date, slot_id=None, booking_type=Appointment.BookingType.ONLINE, user=None):
+    def book_appointment(cls, patient, doctor, department, appointment_date, slot_id=None, booking_type=Appointment.BookingType.ONLINE, user=None, problem_description=None):
+        from apps.doctors.services import ScheduleService
+
+        block_reason = ScheduleService.booking_block_reason(doctor, appointment_date)
+        if block_reason:
+            return None, block_reason
+
         with transaction.atomic():
+            QueueService.lock_clinic(doctor.clinic)
+
             # Check for existing active appointment on this date with this doctor
             existing = Appointment.objects.filter(
                 patient=patient,
@@ -28,13 +34,12 @@ class AppointmentService:
                     return None, "Selected slot does not exist."
                 if slot.status != Slot.Status.AVAILABLE:
                     return None, "Selected slot is no longer available. Please select another slot."
+                if ScheduleService.slot_is_past(slot):
+                    return None, "Selected time slot has already passed. Please select a later slot."
                 slot.status = Slot.Status.BOOKED
                 slot.save(update_fields=['status'])
 
             token_number = QueueService.generate_next_token(doctor, appointment_date)
-
-            max_pos = QueueEntry.objects.filter(queue_date=appointment_date).aggregate(max_p=Max('queue_position'))['max_p'] or 0
-            new_pos = max_pos + 1
 
             appointment = Appointment.objects.create(
                 patient=patient,
@@ -45,17 +50,18 @@ class AppointmentService:
                 booking_type=booking_type,
                 token_number=token_number,
                 status=Appointment.Status.WAITING,
-                estimated_wait_minutes=0
+                estimated_wait_minutes=0,
+                problem_description=(problem_description or '').strip() or None,
             )
 
-            queue_entry = QueueEntry.objects.create(
+            # Online bookings are not checked in yet - the receptionist validates them on arrival.
+            QueueEntry.objects.create(
                 appointment=appointment,
                 queue_date=appointment_date,
-                queue_position=new_pos,
+                queue_position=QueueService.next_queue_position(appointment_date),
                 patients_ahead=0,
                 eta_minutes=0,
                 status=QueueEntry.Status.WAITING,
-                arrival_time=timezone.now() if appointment_date == timezone.localdate() else None
             )
 
             NotificationService.create_notification(
@@ -74,6 +80,7 @@ class AppointmentService:
             )
 
             QueueService.recalculate_queue(doctor.id, appointment_date)
+            appointment.refresh_from_db()
             return appointment, None
 
     @classmethod

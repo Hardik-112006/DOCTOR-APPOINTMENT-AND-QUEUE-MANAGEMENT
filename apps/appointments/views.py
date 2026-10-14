@@ -13,17 +13,21 @@ from apps.appointments.serializers import AppointmentSerializer, BookAppointment
 from apps.appointments.services import AppointmentService
 from apps.doctors.models import Doctor
 from apps.patients.models import Patient
+from apps.patients.serializers import PatientHealthSerializer
+from apps.accounts.permissions import IsPatient
 
 class BookAppointmentView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsPatient]
 
     def post(self, request):
         serializer = BookAppointmentSerializer(data=request.data)
         if not serializer.is_valid():
+            first_field, first_errors = next(iter(serializer.errors.items()))
+            first_error = first_errors[0] if isinstance(first_errors, list) else first_errors
             return Response({
                 "error": {
                     "code": "VALIDATION_ERROR",
-                    "message": "Validation failed",
+                    "message": f"{first_field.replace('_', ' ').capitalize()}: {first_error}",
                     "fields": serializer.errors
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -34,24 +38,25 @@ class BookAppointmentView(APIView):
         else:
             patient = request.user.patient_profile
 
-        doctor_id = serializer.validated_data['doctor_id']
+        data = serializer.validated_data
         try:
-            doctor = Doctor.objects.select_related('department', 'clinic', 'user').get(pk=doctor_id)
+            doctor = Doctor.objects.select_related('department', 'clinic', 'user').prefetch_related('availabilities').get(pk=data['doctor_id'])
         except Doctor.DoesNotExist:
             return Response({"error": {"code": "NOT_FOUND", "message": "Doctor not found"}}, status=status.HTTP_404_NOT_FOUND)
 
-        appointment_date = serializer.validated_data['appointment_date']
-        slot_id = serializer.validated_data.get('slot_id')
-        booking_type = serializer.validated_data.get('booking_type', Appointment.BookingType.ONLINE)
+        # Optional health details typed on the booking form go on the patient's profile
+        PatientHealthSerializer.apply(patient, {f: data.get(f) for f in PatientHealthSerializer.HEALTH_FIELDS})
 
+        # Patients always book online; walk-ins are registered by the receptionist at the desk.
         appointment, err = AppointmentService.book_appointment(
             patient=patient,
             doctor=doctor,
             department=doctor.department,
-            appointment_date=appointment_date,
-            slot_id=slot_id,
-            booking_type=booking_type,
-            user=request.user
+            appointment_date=data['appointment_date'],
+            slot_id=data.get('slot_id'),
+            booking_type=Appointment.BookingType.ONLINE,
+            user=request.user,
+            problem_description=data.get('problem_description'),
         )
 
         if err:
@@ -100,8 +105,11 @@ class CancelAppointmentView(APIView):
             return Response({"error": {"code": "NOT_FOUND", "message": "Appointment not found"}}, status=status.HTTP_404_NOT_FOUND)
 
         # Ownership check
-        if request.user.role not in ('ADMIN', 'RECEPTIONIST') and appt.patient.user != request.user:
-            return Response({"error": {"code": "FORBIDDEN", "message": "You cannot cancel this appointment."}}, status=status.HTTP_403_FORBIDDEN)
+        if request.user.role not in ('ADMIN', 'RECEPTIONIST'):
+            if appt.patient.user != request.user:
+                return Response({"error": {"code": "FORBIDDEN", "message": "You cannot cancel this appointment."}}, status=status.HTTP_403_FORBIDDEN)
+            if appt.status not in (Appointment.Status.BOOKED, Appointment.Status.WAITING):
+                return Response({"error": {"code": "CANCELLATION_ERROR", "message": "This appointment can no longer be cancelled online. Please speak to the reception desk."}}, status=status.HTTP_400_BAD_REQUEST)
 
         success, err = AppointmentService.cancel_appointment(pk, user=request.user)
         if not success:

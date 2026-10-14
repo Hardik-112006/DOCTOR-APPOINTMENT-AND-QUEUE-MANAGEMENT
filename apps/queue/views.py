@@ -4,36 +4,65 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
 from apps.queue.models import QueueEntry
-from apps.queue.serializers import QueueEntrySerializer, WalkInRegistrationSerializer, UpdateQueueStatusSerializer
+from apps.queue.serializers import (
+    QueueEntrySerializer, WalkInRegistrationSerializer, UpdateQueueStatusSerializer, ReceptionRemarkSerializer
+)
 from apps.queue.services import QueueService
 from apps.appointments.models import Appointment
 from apps.doctors.models import Doctor
 from apps.departments.models import Department
-from apps.accounts.permissions import IsDoctor, IsReceptionist, IsDoctorOrReceptionist
+from apps.patients.models import Patient
+from apps.patients.serializers import PatientHealthSerializer
+from apps.accounts.models import User
+from apps.accounts.permissions import IsReceptionist, IsDoctorOrReceptionist
+
+QUEUE_RELATED = (
+    'appointment__patient__user',
+    'appointment__doctor__user',
+    'appointment__doctor__clinic',
+    'appointment__department',
+    'appointment__slot',
+    'appointment__consultation',
+    'validated_by',
+)
+
+# Internal staff-only fields stripped from what a patient sees about their own entry.
+PATIENT_HIDDEN_FIELDS = ('reception_remark', 'validated_by_name')
+
+
+def own_doctor(user):
+    if user.role == User.Role.DOCTOR:
+        return Doctor.objects.select_related('user', 'department', 'clinic').filter(user=user).first()
+    return None
+
+
+def doctor_forbidden(user, entry):
+    """Doctors may only act on their own patients."""
+    return user.role == User.Role.DOCTOR and entry.appointment.doctor.user_id != user.id
+
 
 class LiveQueueView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    """Full queue with patient identities - staff only."""
+    permission_classes = [IsDoctorOrReceptionist]
 
     def get(self, request):
-        from django.db.models import Max
         target_date_str = request.query_params.get('date')
+        target_date = timezone.localdate()
         if target_date_str:
             try:
                 target_date = datetime.date.fromisoformat(target_date_str)
             except ValueError:
-                target_date = timezone.localdate()
-        else:
-            target_date = timezone.localdate()
+                pass
 
         doctor_id = request.query_params.get('doctor_id')
         status_filter = request.query_params.get('status')
 
-        # If logged in user is a Doctor, resolve their doctor_id automatically
-        current_doctor = None
-        if request.user.role == 'DOCTOR' or hasattr(request.user, 'doctor_profile'):
-            current_doctor = Doctor.objects.select_related('user', 'department').filter(user=request.user).first()
-            if current_doctor and not doctor_id:
-                doctor_id = current_doctor.id
+        # A doctor only ever sees their own queue
+        current_doctor = own_doctor(request.user)
+        if request.user.role == User.Role.DOCTOR:
+            if not current_doctor:
+                return Response({"error": {"code": "NOT_FOUND", "message": "No doctor profile linked to this account."}}, status=status.HTTP_404_NOT_FOUND)
+            doctor_id = current_doctor.id
 
         # Sync any appointments for this doctor on this date that might be missing a QueueEntry
         if doctor_id:
@@ -43,21 +72,16 @@ class LiveQueueView(APIView):
                 queue_entry__isnull=True
             ).exclude(status=Appointment.Status.CANCELLED)
             for appt in missing_appts:
-                max_pos = QueueEntry.objects.filter(queue_date=target_date, appointment__doctor_id=doctor_id).aggregate(max_p=Max('queue_position'))['max_p'] or 0
                 QueueEntry.objects.create(
                     appointment=appt,
                     queue_date=target_date,
-                    queue_position=max_pos + 1,
+                    queue_position=QueueService.next_queue_position(target_date),
                     status=QueueEntry.Status.WAITING,
-                    arrival_time=timezone.now() if target_date == timezone.localdate() else None
                 )
+            if missing_appts:
+                QueueService.recalculate_queue(doctor_id, target_date)
 
-        qs = QueueEntry.objects.filter(queue_date=target_date).select_related(
-            'appointment__patient__user',
-            'appointment__doctor__user',
-            'appointment__department',
-            'appointment__slot'
-        ).order_by('queue_position')
+        qs = QueueEntry.objects.filter(queue_date=target_date).select_related(*QUEUE_RELATED).order_by('queue_position')
 
         if doctor_id:
             qs = qs.filter(appointment__doctor_id=doctor_id)
@@ -76,58 +100,38 @@ class LiveQueueView(APIView):
             }
         })
 
+
 class PatientQueueStatusView(APIView):
+    """A patient's own live position. Staff may look up any appointment."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         appointment_id = request.query_params.get('appointment_id')
         token_number = request.query_params.get('token_number')
         target_date = timezone.localdate()
+        is_patient = request.user.role == User.Role.PATIENT
 
-        patient = None
-        if hasattr(request.user, 'patient_profile'):
-            patient = request.user.patient_profile
-        else:
-            patient = Patient.objects.filter(user=request.user).first()
+        patient = Patient.objects.filter(user=request.user).first() if is_patient else None
+        if is_patient and not patient:
+            return Response({"data": None, "message": "No active queue entry found."}, status=status.HTTP_200_OK)
+
+        base = QueueEntry.objects.select_related(*QUEUE_RELATED)
+        if is_patient:
+            base = base.filter(appointment__patient=patient)
 
         entry = None
         if appointment_id:
-            entry = QueueEntry.objects.filter(appointment_id=appointment_id).select_related(
-                'appointment__patient__user', 'appointment__doctor__user',
-                'appointment__department', 'appointment__slot', 'appointment__consultation'
-            ).first()
+            entry = base.filter(appointment_id=appointment_id).first()
         elif token_number:
-            entry = QueueEntry.objects.filter(appointment__token_number=token_number).select_related(
-                'appointment__patient__user', 'appointment__doctor__user',
-                'appointment__department', 'appointment__slot', 'appointment__consultation'
-            ).first()
+            entry = base.filter(appointment__token_number=token_number, queue_date=target_date).first()
         elif patient:
-            # Find today's active appointment for this patient
-            entry = QueueEntry.objects.filter(
-                appointment__patient=patient,
-                queue_date=target_date
-            ).exclude(status=QueueEntry.Status.COMPLETED).select_related(
-                'appointment__patient__user', 'appointment__doctor__user',
-                'appointment__department', 'appointment__slot', 'appointment__consultation'
-            ).order_by('queue_position', '-id').first()
-
-            if not entry:
-                # Any active queue entry
-                entry = QueueEntry.objects.filter(
-                    appointment__patient=patient
-                ).exclude(status=QueueEntry.Status.COMPLETED).select_related(
-                    'appointment__patient__user', 'appointment__doctor__user',
-                    'appointment__department', 'appointment__slot', 'appointment__consultation'
-                ).order_by('-queue_date', 'queue_position').first()
-
-            if not entry:
-                # Latest entry overall
-                entry = QueueEntry.objects.filter(
-                    appointment__patient=patient
-                ).select_related(
-                    'appointment__patient__user', 'appointment__doctor__user',
-                    'appointment__department', 'appointment__slot', 'appointment__consultation'
-                ).order_by('-queue_date', '-id').first()
+            # Today's active appointment first, then the next upcoming one, then the latest overall
+            entry = (
+                base.filter(queue_date=target_date).exclude(status=QueueEntry.Status.COMPLETED)
+                .order_by('queue_position', '-id').first()
+                or base.filter(queue_date__gt=target_date).order_by('queue_date', 'queue_position').first()
+                or base.order_by('-queue_date', '-id').first()
+            )
 
         if not entry:
             return Response({
@@ -138,8 +142,13 @@ class PatientQueueStatusView(APIView):
         QueueService.recalculate_queue(entry.appointment.doctor_id, entry.queue_date)
         entry.refresh_from_db()
 
-        serializer = QueueEntrySerializer(entry)
-        return Response({"data": serializer.data})
+        data = dict(QueueEntrySerializer(entry).data)
+        if is_patient:
+            for field in PATIENT_HIDDEN_FIELDS:
+                data.pop(field, None)
+        data['queue'] = QueueService.patient_snapshot(entry)
+        return Response({"data": data})
+
 
 class WalkInRegistrationView(APIView):
     permission_classes = [IsReceptionist]
@@ -155,24 +164,28 @@ class WalkInRegistrationView(APIView):
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        doctor_id = serializer.validated_data['doctor_id']
-        department_id = serializer.validated_data['department_id']
-        patient_name = serializer.validated_data['patient_name']
-        patient_phone = serializer.validated_data['patient_phone']
+        data = serializer.validated_data
+        doctor = Doctor.objects.select_related('clinic', 'user', 'department').prefetch_related('availabilities').filter(
+            pk=data['doctor_id'], user__is_active=True
+        ).first()
+        if not doctor:
+            return Response({"error": {"code": "NOT_FOUND", "message": "Doctor not found."}}, status=status.HTTP_404_NOT_FOUND)
 
-        try:
-            doctor = Doctor.objects.select_related('clinic', 'user').get(pk=doctor_id)
-            department = Department.objects.get(pk=department_id)
-        except (Doctor.DoesNotExist, Department.DoesNotExist):
-            return Response({"error": {"code": "NOT_FOUND", "message": "Doctor or Department not found."}}, status=status.HTTP_404_NOT_FOUND)
+        department = doctor.department
+        if data.get('department_id'):
+            department = Department.objects.filter(pk=data['department_id']).first()
+            if not department:
+                return Response({"error": {"code": "NOT_FOUND", "message": "Department not found."}}, status=status.HTTP_404_NOT_FOUND)
 
         entry, err = QueueService.register_walk_in(
             clinic=doctor.clinic,
             doctor=doctor,
             department=department,
-            patient_name=patient_name,
-            patient_phone=patient_phone,
-            user=request.user
+            patient_name=data['patient_name'],
+            patient_phone=data['patient_phone'].strip(),
+            user=request.user,
+            problem_description=data.get('problem_description'),
+            health={f: data.get(f) for f in PatientHealthSerializer.HEALTH_FIELDS},
         )
 
         if err:
@@ -180,27 +193,26 @@ class WalkInRegistrationView(APIView):
 
         return Response({"data": QueueEntrySerializer(entry).data}, status=status.HTTP_201_CREATED)
 
+
 class CallNextPatientView(APIView):
     permission_classes = [IsDoctorOrReceptionist]
 
     def post(self, request):
-        doctor_id = request.data.get('doctor_id')
-        if not doctor_id and hasattr(request.user, 'doctor_profile'):
-            doctor_id = request.user.doctor_profile.id
-
-        if not doctor_id:
-            return Response({"error": {"code": "VALIDATION_ERROR", "message": "Doctor ID required."}}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            doctor = Doctor.objects.select_related('clinic', 'user').get(pk=doctor_id)
-        except Doctor.DoesNotExist:
-            return Response({"error": {"code": "NOT_FOUND", "message": "Doctor not found."}}, status=status.HTTP_404_NOT_FOUND)
+        doctor = own_doctor(request.user)
+        if not doctor:
+            doctor_id = request.data.get('doctor_id')
+            if not doctor_id:
+                return Response({"error": {"code": "VALIDATION_ERROR", "message": "Doctor ID required."}}, status=status.HTTP_400_BAD_REQUEST)
+            doctor = Doctor.objects.select_related('clinic', 'user').filter(pk=doctor_id).first()
+            if not doctor:
+                return Response({"error": {"code": "NOT_FOUND", "message": "Doctor not found."}}, status=status.HTTP_404_NOT_FOUND)
 
         entry, err = QueueService.call_next_patient(doctor=doctor, user=request.user)
         if err:
             return Response({"error": {"code": "QUEUE_EMPTY", "message": err}}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"data": QueueEntrySerializer(entry).data})
+
 
 class UpdateQueueStatusView(APIView):
     permission_classes = [IsDoctorOrReceptionist]
@@ -217,16 +229,16 @@ class UpdateQueueStatusView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         appointment_id = serializer.validated_data['appointment_id']
-        new_status = serializer.validated_data['status']
-        notes = serializer.validated_data.get('notes', '')
-        prescription_notes = serializer.validated_data.get('prescription_notes', '')
+        entry = QueueEntry.objects.select_related('appointment__doctor').filter(appointment_id=appointment_id).first()
+        if entry and doctor_forbidden(request.user, entry):
+            return Response({"error": {"code": "FORBIDDEN", "message": "This patient is in another doctor's queue."}}, status=status.HTTP_403_FORBIDDEN)
 
         entry, err = QueueService.update_queue_status(
             appointment_id=appointment_id,
-            new_status=new_status,
+            new_status=serializer.validated_data['status'],
             user=request.user,
-            notes=notes,
-            prescription_notes=prescription_notes
+            notes=serializer.validated_data.get('notes', ''),
+            prescription_notes=serializer.validated_data.get('prescription_notes', '')
         )
 
         if err:
@@ -234,7 +246,9 @@ class UpdateQueueStatusView(APIView):
 
         return Response({"data": QueueEntrySerializer(entry).data})
 
-class MarkArrivedView(APIView):
+
+class ValidatePatientView(APIView):
+    """Receptionist validates (checks in) a patient so the doctor can call them."""
     permission_classes = [IsReceptionist]
 
     def post(self, request):
@@ -242,24 +256,32 @@ class MarkArrivedView(APIView):
         if not appointment_id:
             return Response({"error": {"code": "VALIDATION_ERROR", "message": "appointment_id is required."}}, status=status.HTTP_400_BAD_REQUEST)
 
-        entry = QueueEntry.objects.filter(appointment_id=appointment_id).first()
-        if not entry:
-            return Response({"error": {"code": "NOT_FOUND", "message": "Queue entry not found."}}, status=status.HTTP_404_NOT_FOUND)
+        entry, err = QueueService.validate_entry(appointment_id, user=request.user)
+        if err:
+            if not QueueEntry.objects.filter(appointment_id=appointment_id).exists():
+                return Response({"error": {"code": "NOT_FOUND", "message": err}}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": {"code": "VALIDATION_ERROR", "message": err}}, status=status.HTTP_400_BAD_REQUEST)
 
-        entry.arrival_time = timezone.now()
-        entry.save(update_fields=['arrival_time'])
-
-        try:
-            from apps.dashboard.services import DashboardService
-            doctor_clinic = entry.appointment.doctor.clinic if (entry.appointment and entry.appointment.doctor) else None
-            DashboardService.log_activity(
-                user=request.user,
-                clinic=doctor_clinic,
-                action='PATIENT_ARRIVED',
-                entity_type='QueueEntry',
-                entity_id=entry.id
-            )
-        except Exception:
-            pass
-
+        entry = QueueEntry.objects.select_related(*QUEUE_RELATED).get(pk=entry.pk)
         return Response({"data": QueueEntrySerializer(entry).data})
+
+
+class ReceptionRemarkView(APIView):
+    """Receptionist adds / edits an internal remark on an appointment (e.g. 'fee paid', 'reports pending')."""
+    permission_classes = [IsReceptionist]
+
+    def post(self, request):
+        serializer = ReceptionRemarkSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": {"code": "VALIDATION_ERROR", "message": "Remark must be 500 characters or fewer.", "fields": serializer.errors}}, status=status.HTTP_400_BAD_REQUEST)
+
+        appt = Appointment.objects.select_related('doctor__clinic').filter(pk=serializer.validated_data['appointment_id']).first()
+        if not appt:
+            return Response({"error": {"code": "NOT_FOUND", "message": "Appointment not found."}}, status=status.HTTP_404_NOT_FOUND)
+
+        appt.reception_remark = serializer.validated_data['remark'].strip() or None
+        appt.save(update_fields=['reception_remark'])
+
+        from apps.dashboard.services import DashboardService
+        DashboardService.log_activity(user=request.user, clinic=appt.doctor.clinic, action='RECEPTION_REMARK_UPDATED', entity_type='APPOINTMENT', entity_id=appt.id)
+        return Response({"data": {"appointment_id": appt.id, "reception_remark": appt.reception_remark}})
